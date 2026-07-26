@@ -1,36 +1,47 @@
-# Secrets (SHOPIFY_STORE_DOMAIN, SHOPIFY_API_VERSION, SHOPIFY_ADMIN_TOKEN,
-# ALLOWED_ORIGINS) are NEVER set here — set them with `fly secrets set` so
-# they're encrypted at rest and never appear in this file or in git.
+# fly.toml for story-intake-api
+# Deploy with: fly launch --no-deploy   (first time, generates app name/region)
+#              fly deploy               (every time after)
+#
+# Set secrets BEFORE first deploy (they never go in this file or the image):
+#   fly secrets set \
+#     SHOPIFY_STORE_DOMAIN=your-store.myshopify.com \
+#     SHOPIFY_API_VERSION=2024-10 \
+#     SHOPIFY_ADMIN_TOKEN=shpat_xxx \
+#     TURNSTILE_SECRET_KEY=xxx \
+#     ALLOWED_ORIGINS=https://your-storefront.myshopify.com
 
-app = "story-intake-server"
-primary_region = "iad"
+app = "story-intake-api"          # must be globally unique on Fly — change this
+primary_region = "sin"            # pick the region closest to your users/store
+
+# Fly's default kill_signal (SIGINT) is already handled identically to
+# SIGTERM in src/index.js, and shutdown there is fast (closes the HTTP
+# server + one keep-alive Agent), so the default kill_timeout is plenty —
+# no need to override either.
 
 [build]
 
 [env]
+  # Non-secret config only. Secrets (SHOPIFY_ADMIN_TOKEN, TURNSTILE_SECRET_KEY,
+  # ALLOWED_ORIGINS if you'd rather keep it private, etc.) go via
+  # `fly secrets set`, never here — this section ends up in your app's
+  # visible config, not the encrypted secret store.
   NODE_ENV = "production"
-  PORT = "8080"
 
 [http_service]
-  internal_port = 8080
+  internal_port = 8080            # must match EXPOSE/PORT in the Dockerfile
   force_https = true
-  auto_stop_machines = true
+  auto_stop_machines = "stop"
   auto_start_machines = true
-  min_machines_running = 0
-
-  [http_service.concurrency]
-    type = "requests"
-    hard_limit = 250
-    soft_limit = 200
+  min_machines_running = 0        # set to 1+ to avoid cold starts on first request
 
   [[http_service.checks]]
-    grace_period = "10s"
-    interval = "30s"
-    method = "GET"
+    interval = "15s"
     timeout = "5s"
+    grace_period = "10s"
+    method = "GET"
     path = "/health"
 
 [[vm]]
-  memory = "256mb"
-  cpu_kind = "shared"
-  cpus = 1
+  size = "shared-cpu-1x"
+  memory = "256mb"                # this app does no in-memory image resizing
+                                   # or heavy compute; bump if you see OOMs

@@ -25,8 +25,8 @@ COPY --chown=nonroot:nonroot package.json ./
 # middleware/, routes/, lib/) via relative ESM imports — so the whole src/
 # tree has to ship, not a single server.js file. No secrets live in this
 # tree: SHOPIFY_ADMIN_TOKEN, TURNSTILE_SECRET_KEY, etc. are read from the
-# environment at runtime (docker run --env-file) and are never baked into
-# the image or the build context.
+# environment at runtime (see "docker run --env-file" below) and are never
+# baked into the image or the build context.
 COPY --chown=nonroot:nonroot src ./src
 # Redundant with the image default, but explicit for auditability.
 USER nonroot
