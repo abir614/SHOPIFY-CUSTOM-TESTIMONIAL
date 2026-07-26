@@ -5,6 +5,7 @@ primary_region = "sin"
 
 [env]
   NODE_ENV = "production"
+  TRUST_PROXY = "1"
 
 [http_service]
   internal_port = 8080
