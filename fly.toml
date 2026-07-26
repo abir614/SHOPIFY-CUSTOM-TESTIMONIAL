@@ -1,38 +1,17 @@
-# fly.toml for story-intake-api
-# Deploy with: fly launch --no-deploy   (first time, generates app name/region)
-#              fly deploy               (every time after)
-#
-# Set secrets BEFORE first deploy (they never go in this file or the image):
-#   fly secrets set \
-#     SHOPIFY_STORE_DOMAIN=your-store.myshopify.com \
-#     SHOPIFY_API_VERSION=2024-10 \
-#     SHOPIFY_ADMIN_TOKEN=shpat_xxx \
-#     TURNSTILE_SECRET_KEY=xxx \
-#     ALLOWED_ORIGINS=https://your-storefront.myshopify.com
-
-app = "story-intake-api"          # must be globally unique on Fly — change this
-primary_region = "sin"            # pick the region closest to your users/store
-
-# Fly's default kill_signal (SIGINT) is already handled identically to
-# SIGTERM in src/index.js, and shutdown there is fast (closes the HTTP
-# server + one keep-alive Agent), so the default kill_timeout is plenty —
-# no need to override either.
+app = "sll"
+primary_region = "sin"
 
 [build]
 
 [env]
-  # Non-secret config only. Secrets (SHOPIFY_ADMIN_TOKEN, TURNSTILE_SECRET_KEY,
-  # ALLOWED_ORIGINS if you'd rather keep it private, etc.) go via
-  # `fly secrets set`, never here — this section ends up in your app's
-  # visible config, not the encrypted secret store.
   NODE_ENV = "production"
 
 [http_service]
-  internal_port = 8080            # must match EXPOSE/PORT in the Dockerfile
+  internal_port = 8080
   force_https = true
   auto_stop_machines = "stop"
   auto_start_machines = true
-  min_machines_running = 0        # set to 1+ to avoid cold starts on first request
+  min_machines_running = 0
 
   [[http_service.checks]]
     interval = "15s"
@@ -43,5 +22,4 @@ primary_region = "sin"            # pick the region closest to your users/store
 
 [[vm]]
   size = "shared-cpu-1x"
-  memory = "256mb"                # this app does no in-memory image resizing
-                                   # or heavy compute; bump if you see OOMs
+  memory = "256mb"
