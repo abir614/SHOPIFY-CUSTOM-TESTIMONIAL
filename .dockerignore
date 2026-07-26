@@ -1,12 +1,8 @@
 node_modules
 npm-debug.log
-
-# Never let a local secrets file enter the build context, even though the
-# Dockerfile never COPYs it — this is the belt-and-suspenders backstop.
 .env
 .env.*
 !.env.example
-
 .git
 .gitignore
 *.log
