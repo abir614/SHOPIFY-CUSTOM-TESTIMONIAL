@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import { jsonResponse } from "../security.js";
+import { jsonResponse, verifyPlatformTurnstile } from "../security.js";
 import { getCollections } from "../db.js";
 import { encryptSecret } from "../crypto-utils.js";
 import { FIELD_TYPES, SLUG_RE, DEFAULT_MAX_FIELD_LENGTH, DEFAULT_MAX_FILE_BYTES, DEFAULT_MAX_FORM_FIELDS, sanitizeText } from "../validation.js";
@@ -156,6 +156,14 @@ export async function handleCreateApp(request, auth, corsHeaders) {
   }
 
   const appName = typeof body.appName === "string" ? body.appName.trim().toLowerCase() : "";
+  const turnstileToken = typeof body.turnstileToken === "string" ? body.turnstileToken : "";
+
+  if (process.env.PLATFORM_TURNSTILE_SECRET_KEY) {
+    const ip = request.headers.get("X-Forwarded-For")?.split(",")[0].trim() || request.headers.get("X-Real-IP") || "unknown";
+    const isValid = await verifyPlatformTurnstile(turnstileToken, ip);
+    if (!isValid) return jsonResponse({ error: "Turnstile verification failed. Please try again." }, 403, corsHeaders);
+  }
+
   if (!SLUG_RE.test(appName) || RESERVED_APP_NAMES.has(appName)) {
     return jsonResponse({ error: "appName must be 1-50 chars: lowercase letters, numbers, hyphens." }, 400, corsHeaders);
   }

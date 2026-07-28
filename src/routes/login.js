@@ -1,4 +1,4 @@
-import { jsonResponse } from "../security.js";
+import { jsonResponse, verifyPlatformTurnstile } from "../security.js";
 import { verifyPassword } from "../crypto-utils.js";
 import { issueToken } from "../auth.js";
 import { getCollections } from "../db.js";
@@ -14,6 +14,13 @@ export async function handleLogin(request, corsHeaders) {
   const rawIdentifier = body.username || body.email || body.identifier || "";
   const identifier = typeof rawIdentifier === "string" ? rawIdentifier.trim().toLowerCase() : "";
   const password = typeof body.password === "string" ? body.password : "";
+  const turnstileToken = typeof body.turnstileToken === "string" ? body.turnstileToken : "";
+
+  if (process.env.PLATFORM_TURNSTILE_SECRET_KEY) {
+    const ip = request.headers.get("X-Forwarded-For")?.split(",")[0].trim() || request.headers.get("X-Real-IP") || "unknown";
+    const isValid = await verifyPlatformTurnstile(turnstileToken, ip);
+    if (!isValid) return jsonResponse({ error: "Turnstile verification failed. Please try again." }, 403, corsHeaders);
+  }
 
   if (!identifier || !password) {
     return jsonResponse({ error: "Username/email and password are required." }, 400, corsHeaders);

@@ -1,4 +1,4 @@
-import { jsonResponse } from "../security.js";
+import { jsonResponse, verifyPlatformTurnstile } from "../security.js";
 import { hashPassword } from "../crypto-utils.js";
 import { issueToken } from "../auth.js";
 import { getCollections } from "../db.js";
@@ -27,6 +27,13 @@ export async function handleRegister(request, corsHeaders) {
   const username = typeof body.username === "string" ? body.username.trim().toLowerCase() : "";
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   const password = typeof body.password === "string" ? body.password : "";
+  const turnstileToken = typeof body.turnstileToken === "string" ? body.turnstileToken : "";
+
+  if (process.env.PLATFORM_TURNSTILE_SECRET_KEY) {
+    const ip = request.headers.get("X-Forwarded-For")?.split(",")[0].trim() || request.headers.get("X-Real-IP") || "unknown";
+    const isValid = await verifyPlatformTurnstile(turnstileToken, ip);
+    if (!isValid) return jsonResponse({ error: "Turnstile verification failed. Please try again." }, 403, corsHeaders);
+  }
 
   if (!USERNAME_RE.test(username) || RESERVED_USERNAMES.has(username)) {
     return jsonResponse(
