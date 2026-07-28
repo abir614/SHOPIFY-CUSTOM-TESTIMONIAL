@@ -2,7 +2,7 @@ import { ObjectId } from "mongodb";
 import { jsonResponse } from "../security.js";
 import { getCollections } from "../db.js";
 import { encryptSecret } from "../crypto-utils.js";
-import { FIELD_TYPES, SLUG_RE, DEFAULT_MAX_FIELD_LENGTH, DEFAULT_MAX_FILE_BYTES, DEFAULT_MAX_FORM_FIELDS } from "../validation.js";
+import { FIELD_TYPES, SLUG_RE, DEFAULT_MAX_FIELD_LENGTH, DEFAULT_MAX_FILE_BYTES, DEFAULT_MAX_FORM_FIELDS, sanitizeText } from "../validation.js";
 import { SHOPIFY_DOMAIN_RE } from "../shopify.js";
 
 const RESERVED_APP_NAMES = new Set([
@@ -30,18 +30,18 @@ function sanitizeFields(rawFields) {
     const type = FIELD_TYPES.includes(raw?.type) ? raw.type : "text";
     const field = {
       key,
-      label: typeof raw?.label === "string" && raw.label.trim() ? raw.label.trim().slice(0, 200) : key,
+      label: typeof raw?.label === "string" && raw.label.trim() ? sanitizeText(raw.label).slice(0, 200) : key,
       type,
       required: Boolean(raw?.required),
       maxLength: Number.isFinite(raw?.maxLength) ? Math.min(Math.max(Number(raw.maxLength), 1), 10000) : DEFAULT_MAX_FIELD_LENGTH,
-      placeholder: typeof raw?.placeholder === "string" ? raw.placeholder.trim().slice(0, 200) : "",
-      helpText: typeof raw?.helpText === "string" ? raw.helpText.trim().slice(0, 300) : "",
-      defaultValue: typeof raw?.defaultValue === "string" ? raw.defaultValue.trim().slice(0, 500) : "",
+      placeholder: typeof raw?.placeholder === "string" ? sanitizeText(raw.placeholder).slice(0, 200) : "",
+      helpText: typeof raw?.helpText === "string" ? sanitizeText(raw.helpText).slice(0, 300) : "",
+      defaultValue: typeof raw?.defaultValue === "string" ? sanitizeText(raw.defaultValue).slice(0, 500) : "",
       width: validWidths.includes(String(raw?.width)) ? String(raw.width) : "100",
-      pattern: typeof raw?.pattern === "string" ? raw.pattern.trim().slice(0, 200) : "",
-      patternError: typeof raw?.patternError === "string" ? raw.patternError.trim().slice(0, 200) : "",
-      customClass: typeof raw?.customClass === "string" ? raw.customClass.trim().slice(0, 100) : "",
-      autocomplete: typeof raw?.autocomplete === "string" ? raw.autocomplete.trim().slice(0, 50) : "",
+      pattern: typeof raw?.pattern === "string" ? sanitizeText(raw.pattern).slice(0, 200) : "",
+      patternError: typeof raw?.patternError === "string" ? sanitizeText(raw.patternError).slice(0, 200) : "",
+      customClass: typeof raw?.customClass === "string" ? sanitizeText(raw.customClass).slice(0, 100) : "",
+      autocomplete: typeof raw?.autocomplete === "string" ? sanitizeText(raw.autocomplete).slice(0, 50) : "",
     };
     if (type === "select" || type === "radio") {
       field.options = Array.isArray(raw?.options) ? raw.options.map(String).slice(0, 50) : [];
@@ -58,10 +58,10 @@ function sanitizeFields(rawFields) {
 
 async function sanitizeSettings(rawSettings = {}, existingSettings = {}) {
   const settings = {
-    appTitle: typeof rawSettings.appTitle === "string" ? rawSettings.appTitle.trim().slice(0, 200) : "",
-    appDescription: typeof rawSettings.appDescription === "string" ? rawSettings.appDescription.trim().slice(0, 500) : "",
-    submitBtnText: typeof rawSettings.submitBtnText === "string" ? rawSettings.submitBtnText.trim().slice(0, 60) || "Submit Form" : "Submit Form",
-    successMessage: typeof rawSettings.successMessage === "string" ? rawSettings.successMessage.trim().slice(0, 500) || "Thank you! Your submission has been received." : "Thank you! Your submission has been received.",
+    appTitle: typeof rawSettings.appTitle === "string" ? sanitizeText(rawSettings.appTitle).slice(0, 200) : "",
+    appDescription: typeof rawSettings.appDescription === "string" ? sanitizeText(rawSettings.appDescription).slice(0, 500) : "",
+    submitBtnText: typeof rawSettings.submitBtnText === "string" ? sanitizeText(rawSettings.submitBtnText).slice(0, 60) || "Submit Form" : "Submit Form",
+    successMessage: typeof rawSettings.successMessage === "string" ? sanitizeText(rawSettings.successMessage).slice(0, 500) || "Thank you! Your submission has been received." : "Thank you! Your submission has been received.",
     redirectUrl: typeof rawSettings.redirectUrl === "string" ? rawSettings.redirectUrl.trim().slice(0, 300) : "",
     themeColor: typeof rawSettings.themeColor === "string" && /^#[0-9A-Fa-f]{6}$/.test(rawSettings.themeColor.trim()) ? rawSettings.themeColor.trim() : "#818cf8",
     webhookUrl: typeof rawSettings.webhookUrl === "string" ? rawSettings.webhookUrl.trim().slice(0, 300) : "",
@@ -106,7 +106,6 @@ async function sanitizeSettings(rawSettings = {}, existingSettings = {}) {
   return { settings };
 }
 
-/** Strip anything secret before sending an app doc back to its owner. */
 function toPublicAppView(app) {
   return {
     appName: app.appName,
@@ -136,7 +135,7 @@ function toPublicAppView(app) {
           }
         : { enabled: false },
     },
-    submitUrl: `/${app.ownerUsername}/${app.appName}/`,
+    submitUrl: `/api/${app.ownerUsername}/${app.appName}/`,
     createdAt: app.createdAt,
     updatedAt: app.updatedAt,
   };

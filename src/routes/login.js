@@ -22,8 +22,6 @@ export async function handleLogin(request, corsHeaders) {
   const { users } = getCollections();
   const user = await users.findOne({ $or: [{ username: identifier }, { email: identifier }] });
 
-  // Always run verifyPassword, even on a miss, so response timing doesn't
-  // reveal whether the account exists.
   const DUMMY_HASH = "pbkdf2$100000$Bn3DO6Lu0yJfE8M56BYoug==$9QiRRNi4woz+ASQs336ZnsQ8tcYC4OhdDQJsc7jj0cQ=";
   const valid = user ? await verifyPassword(password, user.passwordHash) : await verifyPassword(password, DUMMY_HASH);
   if (!user) {

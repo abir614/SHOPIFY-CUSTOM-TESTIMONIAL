@@ -5,8 +5,15 @@ import { getCollections } from "../db.js";
 import { EMAIL_REGEX, USERNAME_RE } from "../validation.js";
 
 const RESERVED_USERNAMES = new Set([
-  "api", "health", "admin", "www", "app", "static", "assets",
-  "login", "register", "dashboard", "apps", "submissions", "guide", "docs", "settings", "logout", "home"
+  // System & Admin
+  "admin", "administrator", "superadmin", "root", "system", "sysadmin", "owner", "master", "hostmaster", "webmaster", "postmaster",
+  // Common terms & Roles
+  "support", "help", "billing", "sales", "marketing", "contact", "info", "hello", "team", "staff", "moderator", "user", "guest", "anonymous",
+  // App Routes & Features
+  "api", "health", "www", "app", "static", "assets", "public", "private", "images", "css", "js", "auth", "oauth", "webhook", "webhooks",
+  "login", "register", "signup", "dashboard", "apps", "submissions", "guide", "docs", "settings", "logout", "home", "profile", "account",
+  // Development & Testing
+  "test", "testing", "dev", "developer", "demo", "sandbox", "stage", "staging", "beta", "alpha"
 ]);
 
 export async function handleRegister(request, corsHeaders) {
@@ -23,7 +30,7 @@ export async function handleRegister(request, corsHeaders) {
 
   if (!USERNAME_RE.test(username) || RESERVED_USERNAMES.has(username)) {
     return jsonResponse(
-      { error: "Username must be 3-32 characters: lowercase letters, numbers, - or _, and not a reserved word." },
+      { error: "Username must be 4-10 characters: lowercase letters and numbers only, and not a reserved word." },
       400,
       corsHeaders
     );
