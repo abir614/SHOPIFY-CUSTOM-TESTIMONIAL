@@ -357,6 +357,7 @@ function renderAppsGrid(appsList) {
        <h3 class="app-card-title">\${escapeHtml(app.appName)}</h3>
        <span class="app-card-slug">\${escapeHtml(fullSubmitPath)}</span>
       </div>
+      <button class="btn btn-danger btn-sm" onclick="deleteApp('\${escapeHtml(app.appName)}')" title="Delete App" style="display:flex;align-items:center;gap:0.3rem;flex-shrink:0;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg> Delete</button>
      </div>
      <div class="app-card-meta" style="margin-top: 1rem;">
       <span class="badge" style="background: rgba(99,102,241,0.15); color:#818cf8;">\${fieldsCount} Fields</span>
@@ -378,7 +379,6 @@ function renderAppsGrid(appsList) {
       <button class="btn btn-secondary btn-sm" onclick="openSubmissionsModal('\${escapeHtml(app.appName)}')">Submissions</button>
       <button class="btn btn-secondary btn-sm" onclick="openLiveTestModal('\${escapeHtml(app.appName)}')">Test</button>
      </div>
-     <button class="btn btn-danger btn-sm" onclick="deleteApp('\${escapeHtml(app.appName)}')" title="Delete App" style="display:flex;align-items:center;gap:0.3rem;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg> Delete</button>
     </div>
    </div>
   \`;
@@ -559,6 +559,7 @@ async function openEditAppModal(appName) {
  document.getElementById('shopify-admin-token').value = '';
  document.getElementById('shopify-metaobject-type').value = shopify.metaobjectType || '';
  document.getElementById('shopify-image-field').value = shopify.imageFieldKey || '';
+ document.getElementById('shopify-dual-write').checked = shopify.dualWrite || false;
  renderShopifyMappingTable(shopify.fieldMapping || {});
  updateShopifyTabVisibility();
 
@@ -963,7 +964,8 @@ async function saveApp() {
    apiVersion: shopifyApiVersion,
    metaobjectType: shopifyMetaobjectType,
    imageFieldKey: shopifyImageField,
-   fieldMapping
+   fieldMapping,
+   dualWrite: document.getElementById('shopify-dual-write')?.checked || false,
   };
   if (shopifyAdminToken) {
    settings.shopify.adminAccessToken = shopifyAdminToken;

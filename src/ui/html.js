@@ -278,6 +278,14 @@ export function renderUI(request) {
        </div>
       </div>
 
+      <div class="form-group" style="display:flex;align-items:flex-start;gap:0.75rem;margin-top:0.5rem;">
+       <input type="checkbox" id="shopify-dual-write" style="width:16px;height:16px;margin-top:3px;accent-color:var(--accent);flex-shrink:0;">
+       <div>
+        <label class="form-label" for="shopify-dual-write" style="margin:0;cursor:pointer;">Enable Dual Write</label>
+        <span class="form-hint" style="display:block;margin-top:2px;">Also creates a <code>testimonial</code> or <code>pet_testimonial</code> metaobject when <code>permission_to_share</code> includes &ldquo;Yes&rdquo;</span>
+       </div>
+      </div>
+
       <div style="margin-top:1.5rem;">
        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
         <label class="form-label" style="margin:0;">Custom Field Mapping (Optional)</label>
@@ -437,13 +445,13 @@ export function renderUI(request) {
  </div>
 
  <!-- 7. Interactive Live Test Modal -->
- <div id="live-test-modal" class="modal-overlay">
-  <div class="modal-container" style="max-width: 580px;">
+ <div id="live-test-modal" class="modal-overlay" style="align-items:flex-start;overflow-y:auto;padding:2rem 1rem;">
+  <div class="modal-container" style="max-width: 580px;margin:auto;">
    <div class="modal-header">
     <h3 class="modal-title" id="test-modal-title">Live Test Submission</h3>
     <button class="modal-close" onclick="closeModal('live-test-modal')"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
    </div>
-   <form id="test-form" onsubmit="submitLiveTestForm(event)">
+   <form id="test-form" onsubmit="submitLiveTestForm(event)" style="display:flex;flex-direction:column;min-height:0;flex:1;">
     <div class="modal-body">
      <p class="form-hint" style="margin-top:0; margin-bottom:1.25rem;">
       This renders your exact form schema. Submitting will send a live POST request to your Node.js API endpoint and save it in MongoDB (and Shopify if enabled).
