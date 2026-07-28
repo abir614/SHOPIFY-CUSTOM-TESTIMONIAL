@@ -101,3 +101,23 @@ export function clientIp(request) {
   if (xff) return xff.split(",")[0].trim();
   return request.headers.get("X-Real-IP") || request.headers.get("CF-Connecting-IP") || "unknown";
 }
+
+export async function verifyPlatformTurnstile(token, ip) {
+  const secret = process.env.PLATFORM_TURNSTILE_SECRET_KEY;
+  if (!secret) return true; // Fail open if no platform secret is configured
+  if (!token) return false;
+
+  try {
+    const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ secret, response: token, remoteip: ip }),
+      signal: AbortSignal.timeout(5000),
+    });
+    const data = await res.json();
+    return data.success === true;
+  } catch (err) {
+    console.error("[turnstile] platform verification failed:", err);
+    return false;
+  }
+}
