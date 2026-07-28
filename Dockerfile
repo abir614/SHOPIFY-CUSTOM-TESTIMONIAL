@@ -1,10 +1,10 @@
-FROM node:24-trixie-slim AS build
+FROM node:24-bookworm-slim AS build
 WORKDIR /app
 COPY package.json ./
-RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+RUN npm install --omit=dev --ignore-scripts && npm cache clean --force
 COPY src/ ./src/
 #--------------------------MAIN DOCKER----------------------------
-FROM gcr.io/distroless/nodejs24-debian13:nonroot
+FROM gcr.io/distroless/nodejs24-debian12:nonroot
 WORKDIR /app
 COPY --from=build --chown=nonroot:nonroot /app/node_modules ./node_modules
 COPY --from=build --chown=nonroot:nonroot /app/src ./src
