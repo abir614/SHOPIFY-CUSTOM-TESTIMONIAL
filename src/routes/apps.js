@@ -217,6 +217,19 @@ export async function handleUpdateApp(request, auth, appName, corsHeaders) {
 
   const update = { updatedAt: new Date() };
 
+  // Optional rename — validate and check uniqueness
+  if (body.newAppName !== undefined) {
+    const newAppName = typeof body.newAppName === "string" ? body.newAppName.trim().toLowerCase() : "";
+    if (!SLUG_RE.test(newAppName) || RESERVED_APP_NAMES.has(newAppName)) {
+      return jsonResponse({ error: "New app name must be 1-50 chars: lowercase letters, numbers, hyphens, and not a reserved word." }, 400, corsHeaders);
+    }
+    if (newAppName !== appName) {
+      const clash = await apps.findOne({ ownerId: new ObjectId(auth.userId), appName: newAppName });
+      if (clash) return jsonResponse({ error: "You already have an app with that name." }, 409, corsHeaders);
+      update.appName = newAppName;
+    }
+  }
+
   if (body.fields !== undefined) {
     const fieldResult = sanitizeFields(body.fields);
     if (fieldResult.error) return jsonResponse({ error: fieldResult.error }, 400, corsHeaders);

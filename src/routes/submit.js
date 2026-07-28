@@ -43,24 +43,7 @@ export async function findApp(username, appName) {
   return app;
 }
 
-export async function handleGetAppSchema(request, username, appName, corsHeaders) {
-  const app = await findApp(username, appName);
-  if (!app) return jsonResponse({ error: "Not found" }, 404, corsHeaders);
-
-  const originCheck = checkOrigin(request, app.settings.allowedOrigins);
-  const headers = { ...corsHeaders, ...originCheck.headers };
-  if (!originCheck.allowed) return jsonResponse({ error: "Forbidden" }, 403, headers);
-
-  const publicFields = app.fields.map((f) => ({
-    key: f.key,
-    label: f.label,
-    type: f.type,
-    required: f.required,
-    maxLength: f.maxLength,
-    options: f.options,
-  }));
-  return jsonResponse({ ok: true, appName: app.appName, fields: publicFields }, 200, headers);
-}
+// GET schema endpoint removed — form endpoints are POST-only to prevent data exposure
 
 export async function handleSubmit(request, username, appName, corsHeaders) {
   const app = await findApp(username, appName);
