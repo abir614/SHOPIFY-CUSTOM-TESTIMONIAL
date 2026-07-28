@@ -1,11 +1,21 @@
-export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 export const DEFAULT_MAX_FIELD_LENGTH = 1000;
-export const DEFAULT_MAX_FILE_BYTES = 10 * 1024 * 1024; // 10MB
+export const DEFAULT_MAX_FILE_BYTES = 10 * 1024 * 1024;
 export const DEFAULT_MAX_FORM_FIELDS = 40;
 export const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,48}[a-z0-9])?$/;
-export const USERNAME_RE = /^[a-z0-9](?:[a-z0-9_-]{1,30}[a-z0-9])?$/;
+export const USERNAME_RE = /^[a-z0-9]{4,10}$/;
 
-export const FIELD_TYPES = ["text", "textarea", "email", "select", "checkbox", "file", "date", "number", "tel", "url", "radio"];
+export function sanitizeText(str) {
+  if (typeof str !== 'string') return '';
+  return str
+    .trim()
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+export const FIELD_TYPES = ["text", "textarea", "email", "select", "checkbox", "date", "number", "tel", "url", "radio", "file"];
 
 export const EXT_BY_MIME = {
   "image/jpeg": "jpg",
@@ -20,7 +30,6 @@ export function errMessage(e) {
   return e instanceof Error ? e.message : String(e);
 }
 
-/** Read a request body while enforcing a byte-length ceiling. */
 export async function readBodyWithLimit(request, maxBytes) {
   if (!request.body) return new Uint8Array(0);
   const reader = request.body.getReader();
@@ -45,87 +54,49 @@ export async function readBodyWithLimit(request, maxBytes) {
   return out;
 }
 
-/** Sniff an image's MIME type from its magic bytes (never trust the client). */
-export function sniffImageMime(bytes) {
-  if (bytes.length >= 3 && bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255) return "image/jpeg";
-  if (
-    bytes.length >= 8 &&
-    bytes[0] === 137 &&
-    bytes[1] === 80 &&
-    bytes[2] === 78 &&
-    bytes[3] === 71 &&
-    bytes[4] === 13 &&
-    bytes[5] === 10 &&
-    bytes[6] === 26 &&
-    bytes[7] === 10
-  )
-    return "image/png";
-  if (
-    bytes.length >= 6 &&
-    bytes[0] === 71 &&
-    bytes[1] === 73 &&
-    bytes[2] === 70 &&
-    bytes[3] === 56 &&
-    (bytes[4] === 55 || bytes[4] === 57) &&
-    bytes[5] === 97
-  )
-    return "image/gif";
-  if (
-    bytes.length >= 12 &&
-    bytes[0] === 82 &&
-    bytes[1] === 73 &&
-    bytes[2] === 70 &&
-    bytes[3] === 70 &&
-    bytes[8] === 87 &&
-    bytes[9] === 69 &&
-    bytes[10] === 66 &&
-    bytes[11] === 80
-  )
-    return "image/webp";
+export function sniffMimeType(bytes) {
+  if (bytes.length >= 3 && bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) return "image/jpeg";
+  if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47
+      && bytes[4] === 0x0D && bytes[5] === 0x0A && bytes[6] === 0x1A && bytes[7] === 0x0A) return "image/png";
+  if (bytes.length >= 6 && bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46
+      && bytes[3] === 0x38 && (bytes[4] === 0x37 || bytes[4] === 0x39) && bytes[5] === 0x61) return "image/gif";
+  if (bytes.length >= 12 && bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46
+      && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) return "image/webp";
+  if (bytes.length >= 5 && bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) return "application/pdf";
+  if (bytes.length >= 4 && bytes[0] === 0x50 && bytes[1] === 0x4B && bytes[2] === 0x03 && bytes[3] === 0x04) return "application/zip";
+  if (bytes.length >= 12) {
+    const box = String.fromCharCode(bytes[4], bytes[5], bytes[6], bytes[7]);
+    if (box === "ftyp") return "video/mp4";
+    if (box === "wide" || box === "mdat") return "video/quicktime";
+  }
+  if (bytes.length >= 4 && bytes[0] === 0x1A && bytes[1] === 0x45 && bytes[2] === 0xDF && bytes[3] === 0xA3) return "video/webm";
   return null;
 }
 
-/** Strip EXIF (APP1) segments from a JPEG so uploaded photos don't leak GPS/metadata. */
 export function stripJpegExif(bytes) {
   if (bytes.length < 4 || bytes[0] !== 255 || bytes[1] !== 216) return bytes;
   const out = new Uint8Array(bytes.length);
-  out[0] = bytes[0];
-  out[1] = bytes[1];
-  let w = 2;
-  let n = 2;
+  out[0] = bytes[0]; out[1] = bytes[1];
+  let w = 2, n = 2;
   while (n + 1 < bytes.length && bytes[n] === 255) {
     const marker = bytes[n + 1];
     if (marker === 217 || marker === 1 || (marker >= 208 && marker <= 215)) {
-      out[w++] = bytes[n];
-      out[w++] = bytes[n + 1];
-      n += 2;
-      continue;
+      out[w++] = bytes[n]; out[w++] = bytes[n + 1]; n += 2; continue;
     }
     if (n + 3 >= bytes.length) break;
     const segLen = (bytes[n + 2] << 8) | bytes[n + 3];
     const segEnd = n + 2 + segLen;
     if (segLen < 2 || segEnd > bytes.length) break;
-    const isExif = marker === 225 && segLen >= 8 && bytes[n + 4] === 69 && bytes[n + 5] === 120 && bytes[n + 6] === 105 && bytes[n + 7] === 102;
-    if (!isExif) {
-      out.set(bytes.subarray(n, segEnd), w);
-      w += segEnd - n;
-    }
+    const isExif = marker === 225 && segLen >= 8 &&
+      bytes[n + 4] === 69 && bytes[n + 5] === 120 && bytes[n + 6] === 105 && bytes[n + 7] === 102;
+    if (!isExif) { out.set(bytes.subarray(n, segEnd), w); w += segEnd - n; }
     n = segEnd;
-    if (marker === 218) {
-      out.set(bytes.subarray(n), w);
-      w += bytes.length - n;
-      return out.subarray(0, w);
-    }
+    if (marker === 218) { out.set(bytes.subarray(n), w); w += bytes.length - n; return out.subarray(0, w); }
   }
-  out.set(bytes.subarray(n), w);
-  w += bytes.length - n;
+  out.set(bytes.subarray(n), w); w += bytes.length - n;
   return out.subarray(0, w);
 }
 
-/**
- * Validate + normalize one field's raw form value against its schema entry.
- * Returns { ok: true, value } or { ok: false, message }.
- */
 export function validateFieldValue(fieldSchema, rawValue) {
   const maxLength = fieldSchema.maxLength || DEFAULT_MAX_FIELD_LENGTH;
   const isEmpty = typeof rawValue !== "string" || rawValue.trim() === "";
@@ -135,7 +106,8 @@ export function validateFieldValue(fieldSchema, rawValue) {
   }
   if (isEmpty) return { ok: true, value: "" };
 
-  const value = rawValue.slice(0, maxLength);
+  const sanitized = sanitizeText(rawValue);
+  const value = sanitized.slice(0, maxLength);
 
   if (fieldSchema.pattern && value) {
     try {
@@ -181,15 +153,10 @@ export function validateFieldValue(fieldSchema, rawValue) {
   return { ok: true, value };
 }
 
-/**
- * Validate a whole submitted form (a FormData object) against an app's field
- * schema. Returns { ok: true, data } or { ok: false, errors }.
- */
 export function validateSubmission(fields, formData) {
   const data = {};
   const errors = [];
   for (const field of fields) {
-    if (field.type === "file") continue; // handled separately
     const raw = formData.get(field.key);
     const result = validateFieldValue(field, typeof raw === "string" ? raw : "");
     if (!result.ok) {
@@ -200,3 +167,5 @@ export function validateSubmission(fields, formData) {
   }
   return errors.length > 0 ? { ok: false, errors } : { ok: true, data };
 }
+
+export const sniffImageMime = sniffMimeType;

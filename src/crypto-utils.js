@@ -1,7 +1,4 @@
-// All primitives here use the standard Web Crypto API (globalThis.crypto),
-// available natively in Node.js 19+ (and via --experimental-global-webcrypto in 18).
-
-const PBKDF2_ITERATIONS = 100_000; // OWASP recommended minimum for PBKDF2-SHA256
+const PBKDF2_ITERATIONS = 100_000;
 const PBKDF2_HASH = "SHA-256";
 const KEY_LENGTH_BITS = 256;
 
@@ -13,10 +10,6 @@ function fromBase64(b64) {
   return new Uint8Array(Buffer.from(b64, "base64"));
 }
 
-/**
- * Hash a plaintext password. Returns a single string safe to store in Mongo:
- *   pbkdf2$<iterations>$<saltBase64>$<hashBase64>
- */
 export async function hashPassword(password) {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const keyMaterial = await crypto.subtle.importKey(
@@ -34,10 +27,6 @@ export async function hashPassword(password) {
   return `pbkdf2$${PBKDF2_ITERATIONS}$${toBase64(salt)}$${toBase64(new Uint8Array(derived))}`;
 }
 
-/**
- * Verify a plaintext password against a stored hash string from hashPassword().
- * Also supports legacy hashes using 10_000 iterations.
- */
 export async function verifyPassword(password, stored) {
   if (typeof stored !== "string") return false;
   const parts = stored.split("$");
@@ -61,30 +50,27 @@ export async function verifyPassword(password, stored) {
     )
   );
   if (derived.length !== expected.length) return false;
-  // Constant-time compare to prevent timing attacks
   let diff = 0;
   for (let i = 0; i < derived.length; i++) diff |= derived[i] ^ expected[i];
   return diff === 0;
 }
 
-function getEncryptionKey() {
-  const key = process.env.ENCRYPTION_KEY;
+function getEncryptionKey(env) {
+  const key = env?.ENCRYPTION_KEY || process.env.ENCRYPTION_KEY;
   if (!key) throw new Error("ENCRYPTION_KEY environment variable is not set.");
   return fromBase64(key);
 }
 
-async function importEncryptionKey() {
-  const raw = getEncryptionKey();
+async function importEncryptionKey(env) {
+  const raw = getEncryptionKey(env);
   return crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["encrypt", "decrypt"]);
 }
 
-/**
- * Encrypt a secret (e.g. a Shopify Admin API token or Turnstile secret key)
- * before storing it in MongoDB. Returns "ivBase64:cipherBase64".
- */
-export async function encryptSecret(plaintext) {
+export async function encryptSecret(envOrText, maybeText) {
+  const env = maybeText !== undefined ? envOrText : null;
+  const plaintext = maybeText !== undefined ? maybeText : envOrText;
   if (plaintext === null || plaintext === undefined || plaintext === "") return "";
-  const key = await importEncryptionKey();
+  const key = await importEncryptionKey(env);
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const cipher = await crypto.subtle.encrypt(
     { name: "AES-GCM", iv },
@@ -94,14 +80,13 @@ export async function encryptSecret(plaintext) {
   return `${toBase64(iv)}:${toBase64(new Uint8Array(cipher))}`;
 }
 
-/**
- * Decrypt a value produced by encryptSecret(). Returns "" if empty/invalid.
- */
-export async function decryptSecret(stored) {
+export async function decryptSecret(envOrText, maybeText) {
+  const env = maybeText !== undefined ? envOrText : null;
+  const stored = maybeText !== undefined ? maybeText : envOrText;
   if (!stored || typeof stored !== "string" || !stored.includes(":")) return "";
   const [ivB64, cipherB64] = stored.split(":");
   try {
-    const key = await importEncryptionKey();
+    const key = await importEncryptionKey(env);
     const iv = fromBase64(ivB64);
     const plainBuf = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, fromBase64(cipherB64));
     return new TextDecoder().decode(plainBuf);

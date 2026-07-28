@@ -1,14 +1,8 @@
 import { MongoClient } from "mongodb";
 
-// Single long-lived client for the Node.js server process.
-// Connection is established once at startup via connectDb() and reused.
 let client = null;
 let db = null;
 
-/**
- * Called once at server startup. Establishes the MongoDB connection and
- * ensures all indexes are in place before the server starts accepting traffic.
- */
 export async function connectDb() {
   if (db) return db;
   const uri = process.env.MONGODB_URI;
@@ -20,18 +14,18 @@ export async function connectDb() {
     serverSelectionTimeoutMS: 10_000,
     connectTimeoutMS: 10_000,
     socketTimeoutMS: 30_000,
+    tls: true,
+    tlsAllowInvalidCertificates: false,
+    tlsAllowInvalidHostnames: false,
   });
 
   await client.connect();
-  db = client.db(process.env.MONGODB_DB_NAME || "formhub");
+  db = process.env.MONGODB_DB_NAME ? client.db(process.env.MONGODB_DB_NAME) : client.db();
   await ensureIndexes(db);
   console.info("[db] Connected to MongoDB and indexes ensured.");
   return db;
 }
 
-/**
- * Returns the cached database instance. Must be called after connectDb().
- */
 export function getDb() {
   if (!db) throw new Error("Database not initialised. Call connectDb() first.");
   return db;
@@ -55,7 +49,6 @@ export function getCollections() {
   };
 }
 
-/** Gracefully close the connection on server shutdown. */
 export async function closeDb() {
   if (client) {
     await client.close();

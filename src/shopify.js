@@ -1,12 +1,9 @@
 import { EXT_BY_MIME, errMessage } from "./validation.js";
 
-const SHOPIFY_TIMEOUT_MS = 10_000;
 export const SHOPIFY_DOMAIN_RE = /^[a-z0-9][a-z0-9-]*\.myshopify\.com$/i;
 
-/**
- * `shopifyConfig` shape (per-app, decrypted before calling these helpers):
- *   { storeDomain, apiVersion, adminAccessToken, metaobjectType, imageFieldKey }
- */
+const SHOPIFY_TIMEOUT_MS = 10_000;
+
 function graphqlUrl(config) {
   return `https://${config.storeDomain}/admin/api/${config.apiVersion}/graphql.json`;
 }
@@ -23,14 +20,19 @@ async function shopifyGraphQL(config, query, variables) {
   });
 }
 
-/**
- * Uploads raw image bytes to Shopify via a staged upload, then registers it
- * as a File. Returns the Shopify file GID, or null if anything fails
- * (image sync is always best-effort — it must never block the submission).
- */
-export async function uploadImageToShopify(config, bytes, mimeType) {
-  const ext = EXT_BY_MIME[mimeType] || "bin";
+function shopifyResource(mimeType) {
+  if (!mimeType) return "FILE";
+  if (mimeType.startsWith("image/")) return "IMAGE";
+  if (mimeType.startsWith("video/")) return "VIDEO";
+  if (mimeType === "model/gltf-binary" || mimeType === "model/gltf+json") return "MODEL_3D";
+  return "FILE";
+}
+
+export async function uploadFileToShopify(config, bytes, mimeType, originalFilename) {
+  const resource = shopifyResource(mimeType);
+  const ext = EXT_BY_MIME[mimeType] || (originalFilename?.split(".").pop()?.toLowerCase() || "bin");
   const filename = `upload-${crypto.randomUUID()}.${ext}`;
+
   try {
     const stagedQuery = `
       mutation stagedUploadsCreate($input: [StagedUploadInput!]!) {
@@ -41,7 +43,7 @@ export async function uploadImageToShopify(config, bytes, mimeType) {
       }
     `;
     const stagedRes = await shopifyGraphQL(config, stagedQuery, {
-      input: [{ filename, mimeType, httpMethod: "POST", resource: "IMAGE" }],
+      input: [{ filename, mimeType, httpMethod: "POST", resource }],
     });
     const stagedJson = await stagedRes.json();
     const target = stagedJson?.data?.stagedUploadsCreate?.stagedTargets?.[0];
@@ -51,8 +53,14 @@ export async function uploadImageToShopify(config, bytes, mimeType) {
     for (const param of target.parameters) form.append(param.name, param.value);
     form.append("file", new Blob([bytes], { type: mimeType }), filename);
 
-    const uploadRes = await fetch(target.url, { method: "POST", body: form, signal: AbortSignal.timeout(SHOPIFY_TIMEOUT_MS) });
+    const uploadRes = await fetch(target.url, {
+      method: "POST",
+      body: form,
+      signal: AbortSignal.timeout(SHOPIFY_TIMEOUT_MS),
+    });
     if (!uploadRes.ok) return null;
+
+    const contentType = resource === "IMAGE" ? "IMAGE" : resource === "VIDEO" ? "VIDEO" : "FILE";
 
     const fileCreateQuery = `
       mutation fileCreate($files: [FileCreateInput!]!) {
@@ -60,21 +68,16 @@ export async function uploadImageToShopify(config, bytes, mimeType) {
       }
     `;
     const fileRes = await shopifyGraphQL(config, fileCreateQuery, {
-      files: [{ originalSource: target.resourceUrl, contentType: "IMAGE" }],
+      files: [{ originalSource: target.resourceUrl, contentType }],
     });
     const fileJson = await fileRes.json();
     return fileJson?.data?.fileCreate?.files?.[0]?.id || null;
   } catch (e) {
-    console.error("[shopify] Image upload failed, continuing without image:", errMessage(e));
+    console.error("[shopify] File upload failed, continuing:", errMessage(e));
     return null;
   }
 }
 
-/**
- * Creates a metaobject from a flat { key: value } map, using the app's
- * configured `metaobjectType` and an optional field-key mapping (appFieldKey
- * -> shopifyFieldKey). Returns { ok, userErrors, systemErrors }.
- */
 export async function createMetaobject(config, data, fieldMapping = {}) {
   const fields = Object.entries(data)
     .filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== "")

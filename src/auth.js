@@ -1,20 +1,18 @@
 import { SignJWT, jwtVerify } from "jose";
 
 const ALG = "HS256";
-const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
+const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
 
-function getSigningKey() {
-  const secret = process.env.JWT_SECRET;
+function getSigningKey(env) {
+  const secret = env?.JWT_SECRET || process.env.JWT_SECRET;
   if (!secret) throw new Error("JWT_SECRET environment variable is not set.");
   return new TextEncoder().encode(secret);
 }
 
-/**
- * Issue a signed JWT for a user. Payload is intentionally minimal —
- * only what's needed to identify the user on subsequent requests.
- */
-export async function issueToken(user) {
-  const key = getSigningKey();
+export async function issueToken(envOrUser, maybeUser) {
+  const env = maybeUser !== undefined ? envOrUser : null;
+  const user = maybeUser !== undefined ? maybeUser : envOrUser;
+  const key = getSigningKey(env);
   return new SignJWT({ username: user.username, email: user.email })
     .setProtectedHeader({ alg: ALG })
     .setSubject(String(user._id))
@@ -23,12 +21,11 @@ export async function issueToken(user) {
     .sign(key);
 }
 
-/**
- * Verify a JWT and return its payload, or null if invalid/expired.
- */
-export async function verifyToken(token) {
+export async function verifyToken(envOrToken, maybeToken) {
+  const env = maybeToken !== undefined ? envOrToken : null;
+  const token = maybeToken !== undefined ? maybeToken : envOrToken;
   try {
-    const key = getSigningKey();
+    const key = getSigningKey(env);
     const { payload } = await jwtVerify(token, key, { algorithms: [ALG] });
     return payload;
   } catch {
@@ -42,10 +39,6 @@ function extractBearerToken(request) {
   return match ? match[1].trim() : null;
 }
 
-/**
- * Require a valid Bearer token. Returns { userId, username, email } on
- * success, or an error descriptor on failure.
- */
 export async function requireAuth(request) {
   const token = extractBearerToken(request);
   if (!token) {

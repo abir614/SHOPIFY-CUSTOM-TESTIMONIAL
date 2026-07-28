@@ -1,17 +1,8 @@
-/**
- * server.js — Node.js HTTP server entrypoint
- *
- * Bridges Express (node:http) to the Web API Request/Response model used
- * throughout the application, so all business-logic code remains unchanged.
- */
-
 import express from "express";
 import { connectDb, closeDb } from "./db.js";
 import { handleRequest } from "./index.js";
+import { getSystemLoadFactor } from "./security.js";
 
-// ---------------------------------------------------------------------------
-// Validate required environment variables before starting
-// ---------------------------------------------------------------------------
 const REQUIRED_ENV = ["MONGODB_URI", "JWT_SECRET", "ENCRYPTION_KEY"];
 for (const key of REQUIRED_ENV) {
   if (!process.env[key]) {
@@ -20,33 +11,31 @@ for (const key of REQUIRED_ENV) {
   }
 }
 
-const PORT = Number(process.env.PORT) || 8080;
+const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || "0.0.0.0";
 
-// ---------------------------------------------------------------------------
-// Express app — minimal middleware, all routing delegated to handleRequest()
-// ---------------------------------------------------------------------------
 const app = express();
 
-// Parse raw body as Buffer for all content types (we handle parsing ourselves
-// in the business logic to stay consistent with the original Worker code).
+app.use((req, res, next) => {
+  if (getSystemLoadFactor() < 0.4 && req.path !== "/health") {
+    res.status(503).setHeader("Retry-After", "30").json({ error: "Server under heavy load. Please retry shortly." });
+    return;
+  }
+  next();
+});
+
 app.use(
   express.raw({
     type: "*/*",
-    limit: "26mb", // slightly above the max form body we accept (25MB file + overhead)
+    limit: "11mb",
   })
 );
 
-// ---------------------------------------------------------------------------
-// Web API adapter: Express req/res  ↔  Web API Request/Response
-// ---------------------------------------------------------------------------
 app.use(async (req, res) => {
-  // Build the full URL from Express request
   const proto = req.headers["x-forwarded-proto"] || (req.socket.encrypted ? "https" : "http");
   const host = req.headers["x-forwarded-host"] || req.headers.host || `localhost:${PORT}`;
   const url = `${proto}://${host}${req.originalUrl}`;
 
-  // Convert Express headers to a Headers object
   const headers = new Headers();
   for (const [name, value] of Object.entries(req.headers)) {
     if (Array.isArray(value)) {
@@ -56,23 +45,18 @@ app.use(async (req, res) => {
     }
   }
 
-  // Inject the real client IP so clientIp() in security.js can read it
   if (req.socket?.remoteAddress && !headers.has("X-Forwarded-For")) {
     headers.set("X-Real-IP", req.socket.remoteAddress);
   }
 
-  // Body — Express raw() gives us a Buffer; convert to Uint8Array for the
-  // Web API Request. GET/HEAD/OPTIONS have no body.
   const hasBody = req.body instanceof Buffer && req.body.length > 0;
   const webRequest = new Request(url, {
     method: req.method,
     headers,
     body: hasBody ? req.body : undefined,
-    // duplex is required in Node 18+ when body is present
     ...(hasBody ? { duplex: "half" } : {}),
   });
 
-  // Dispatch to the core handler
   let webResponse;
   try {
     webResponse = await handleRequest(webRequest);
@@ -82,7 +66,6 @@ app.use(async (req, res) => {
     return;
   }
 
-  // Write the Web API Response back to the Express response
   res.status(webResponse.status);
   for (const [name, value] of webResponse.headers) {
     res.setHeader(name, value);
@@ -92,9 +75,6 @@ app.use(async (req, res) => {
   res.end(Buffer.from(body));
 });
 
-// ---------------------------------------------------------------------------
-// Startup
-// ---------------------------------------------------------------------------
 async function start() {
   try {
     console.info("[startup] Connecting to MongoDB…");
@@ -104,7 +84,6 @@ async function start() {
       console.info(`[startup] FormHub listening on http://${HOST}:${PORT}`);
     });
 
-    // Graceful shutdown
     const shutdown = async (signal) => {
       console.info(`[shutdown] Received ${signal}. Closing server…`);
       server.close(async () => {
@@ -112,7 +91,6 @@ async function start() {
         console.info("[shutdown] Clean exit.");
         process.exit(0);
       });
-      // Force exit if shutdown takes too long
       setTimeout(() => {
         console.error("[shutdown] Forced exit after timeout.");
         process.exit(1);
