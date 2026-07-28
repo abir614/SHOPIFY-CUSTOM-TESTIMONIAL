@@ -10,10 +10,8 @@
     "test": "node tests/logic.test.mjs"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.600.0",
-    "express": "^4.21.2",
-    "jose": "^5.9.6",
-    "mongodb": "^6.10.0",
-    "multer": "^1.4.5-lts.1"
+    "express": "4.22.2",
+    "jose": "5.10.0",
+    "mongodb": "6.21.0"
   }
 }

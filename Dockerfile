@@ -1,9 +1,9 @@
 FROM node:24-bookworm-slim AS build
 WORKDIR /app
-COPY package.json package-lock.json ./
+COPY package*.json ./
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 COPY src/ ./src/
-#--------------------------MAIN DOCKER----------------------------
+
 FROM gcr.io/distroless/nodejs24-debian12:nonroot
 WORKDIR /app
 COPY --from=build --chown=nonroot:nonroot /app/node_modules ./node_modules
@@ -11,9 +11,7 @@ COPY --from=build --chown=nonroot:nonroot /app/src ./src
 COPY --from=build --chown=nonroot:nonroot /app/package.json ./
 ENV NODE_ENV=production \
     PORT=8080 \
-    HOST=0.0.0.0 \
-    FILE_STORAGE=local \
-    UPLOAD_DIR=/tmp/uploads
+    HOST=0.0.0.0
 USER nonroot
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

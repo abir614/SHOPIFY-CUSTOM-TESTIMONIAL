@@ -1,40 +1,13 @@
-# ── Dependency directories ────────────────────────────────────────────────────
 node_modules/
-
-# ── Cloudflare / Wrangler artifacts ──────────────────────────────────────────
-.wrangler/
-wrangler.toml
-
-# ── Secrets and local config ─────────────────────────────────────────────────
 .env
 .env.*
-.dev.vars
-.dev.vars.*
-
-# ── Test files ────────────────────────────────────────────────────────────────
 tests/
-
-# ── Documentation ────────────────────────────────────────────────────────────
 *.md
-README*
-
-# ── Version control ───────────────────────────────────────────────────────────
 .git/
 .gitignore
-.gitattributes
-
-# ── Editor / IDE metadata ─────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
 .DS_Store
 Thumbs.db
-
-# ── CI / CD configs ───────────────────────────────────────────────────────────
-.github/
-.gitlab-ci.yml
-Jenkinsfile
-
-# ── Temp / local uploads (managed at runtime via volume mount) ───────────────
-uploads/

@@ -1,48 +1,29 @@
-# FormHub — Docker Compose (local development / testing)
-#
-# Usage:
-#   cp .env.example .env          # fill in MONGODB_URI etc.
-#   docker compose up --build
-
 services:
   formhub:
     build:
       context: .
       dockerfile: Dockerfile
-      target: runner
     image: formhub:local
     container_name: formhub
     restart: unless-stopped
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT:-8080}:8080"
     env_file:
       - .env
     environment:
       NODE_ENV: production
-      PORT: "3000"
+      PORT: "8080"
       HOST: "0.0.0.0"
-      # FILE_STORAGE: local   # or 's3' — see .env.example
-      UPLOAD_DIR: /data/uploads
-    volumes:
-      # Persist local file uploads across container restarts.
-      # Remove this volume if you use FILE_STORAGE=s3.
-      - formhub_uploads:/data/uploads
-    # Read-only root filesystem — only /tmp and the named volume are writable.
     read_only: true
     tmpfs:
       - /tmp
     security_opt:
       - no-new-privileges:true
-    # Drop all Linux capabilities (distroless nonroot doesn't need any)
     cap_drop:
       - ALL
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
-
-volumes:
-  formhub_uploads:
-    driver: local
