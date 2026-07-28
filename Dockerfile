@@ -1,7 +1,7 @@
 FROM node:24-bookworm-slim AS build
 WORKDIR /app
 COPY package.json ./
-RUN npm install --omit=dev --ignore-scripts && npm cache clean --force
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 COPY src/ ./src/
 #--------------------------MAIN DOCKER----------------------------
 FROM gcr.io/distroless/nodejs24-debian12:nonroot
