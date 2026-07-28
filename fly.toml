@@ -1,26 +1,24 @@
 app = "sll"
 primary_region = "sin"
 
-[build]
-
 [env]
-  NODE_ENV = "production"
-  TRUST_PROXY = "1"
+NODE_ENV = "production"
+TRUST_PROXY = "1"
 
 [http_service]
-  internal_port = 8080
-  force_https = true
-  auto_stop_machines = "stop"
-  auto_start_machines = true
-  min_machines_running = 0
+auto_start_machines = true
+auto_stop_machines = "off"
+force_https = true
+internal_port = 8_080
+min_machines_running = 0
 
   [[http_service.checks]]
-    interval = "15s"
-    timeout = "5s"
-    grace_period = "10s"
-    method = "GET"
-    path = "/health"
+  grace_period = "10s"
+  interval = "15s"
+  method = "GET"
+  path = "/health"
+  timeout = "5s"
 
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "256mb"
+memory = "256mb"
+size = "shared-cpu-1x"
