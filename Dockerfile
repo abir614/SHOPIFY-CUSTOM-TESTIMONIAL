@@ -3,7 +3,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 COPY src/ ./src/
-#------------------------MAIN DOCKER------------------------
+#--------------------------MAIN DOCKER----------------------------
 FROM gcr.io/distroless/nodejs22-debian12:nonroot
 WORKDIR /app
 COPY --from=build --chown=nonroot:nonroot /app/node_modules ./node_modules
