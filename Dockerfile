@@ -4,7 +4,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 COPY src/ ./src/
 
-FROM build AS prune
+FROM build AS rem
 RUN find node_modules -type f \( \
       -iname "*.md" -o -iname "*.markdown" -o -iname "license*" \
       -o -iname "*.map" -o -iname "*.ts" \
@@ -16,7 +16,7 @@ RUN find node_modules -type f \( \
 
 FROM gcr.io/distroless/nodejs24-debian12:nonroot
 WORKDIR /app
-COPY --from=prune --chown=nonroot:nonroot /app/node_modules ./node_modules
+COPY --from=rem --chown=nonroot:nonroot /app/node_modules ./node_modules
 COPY --from=build --chown=nonroot:nonroot /app/src ./src
 COPY --from=build --chown=nonroot:nonroot /app/package.json ./
 ENV NODE_ENV=production \
