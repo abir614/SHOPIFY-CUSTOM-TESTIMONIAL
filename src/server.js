@@ -1,0 +1,130 @@
+/**
+ * server.js — Node.js HTTP server entrypoint
+ *
+ * Bridges Express (node:http) to the Web API Request/Response model used
+ * throughout the application, so all business-logic code remains unchanged.
+ */
+
+import express from "express";
+import { connectDb, closeDb } from "./db.js";
+import { handleRequest } from "./index.js";
+
+// ---------------------------------------------------------------------------
+// Validate required environment variables before starting
+// ---------------------------------------------------------------------------
+const REQUIRED_ENV = ["MONGODB_URI", "JWT_SECRET", "ENCRYPTION_KEY"];
+for (const key of REQUIRED_ENV) {
+  if (!process.env[key]) {
+    console.error(`[startup] Missing required environment variable: ${key}`);
+    process.exit(1);
+  }
+}
+
+const PORT = Number(process.env.PORT) || 3000;
+const HOST = process.env.HOST || "0.0.0.0";
+
+// ---------------------------------------------------------------------------
+// Express app — minimal middleware, all routing delegated to handleRequest()
+// ---------------------------------------------------------------------------
+const app = express();
+
+// Parse raw body as Buffer for all content types (we handle parsing ourselves
+// in the business logic to stay consistent with the original Worker code).
+app.use(
+  express.raw({
+    type: "*/*",
+    limit: "26mb", // slightly above the max form body we accept (25MB file + overhead)
+  })
+);
+
+// ---------------------------------------------------------------------------
+// Web API adapter: Express req/res  ↔  Web API Request/Response
+// ---------------------------------------------------------------------------
+app.use(async (req, res) => {
+  // Build the full URL from Express request
+  const proto = req.headers["x-forwarded-proto"] || (req.socket.encrypted ? "https" : "http");
+  const host = req.headers["x-forwarded-host"] || req.headers.host || `localhost:${PORT}`;
+  const url = `${proto}://${host}${req.originalUrl}`;
+
+  // Convert Express headers to a Headers object
+  const headers = new Headers();
+  for (const [name, value] of Object.entries(req.headers)) {
+    if (Array.isArray(value)) {
+      for (const v of value) headers.append(name, v);
+    } else if (value !== undefined) {
+      headers.set(name, value);
+    }
+  }
+
+  // Inject the real client IP so clientIp() in security.js can read it
+  if (req.socket?.remoteAddress && !headers.has("X-Forwarded-For")) {
+    headers.set("X-Real-IP", req.socket.remoteAddress);
+  }
+
+  // Body — Express raw() gives us a Buffer; convert to Uint8Array for the
+  // Web API Request. GET/HEAD/OPTIONS have no body.
+  const hasBody = req.body instanceof Buffer && req.body.length > 0;
+  const webRequest = new Request(url, {
+    method: req.method,
+    headers,
+    body: hasBody ? req.body : undefined,
+    // duplex is required in Node 18+ when body is present
+    ...(hasBody ? { duplex: "half" } : {}),
+  });
+
+  // Dispatch to the core handler
+  let webResponse;
+  try {
+    webResponse = await handleRequest(webRequest);
+  } catch (err) {
+    console.error("[server] Unhandled error in handleRequest:", err);
+    res.status(500).json({ error: "Internal server error." });
+    return;
+  }
+
+  // Write the Web API Response back to the Express response
+  res.status(webResponse.status);
+  for (const [name, value] of webResponse.headers) {
+    res.setHeader(name, value);
+  }
+
+  const body = await webResponse.arrayBuffer();
+  res.end(Buffer.from(body));
+});
+
+// ---------------------------------------------------------------------------
+// Startup
+// ---------------------------------------------------------------------------
+async function start() {
+  try {
+    console.info("[startup] Connecting to MongoDB…");
+    await connectDb();
+
+    const server = app.listen(PORT, HOST, () => {
+      console.info(`[startup] FormHub listening on http://${HOST}:${PORT}`);
+    });
+
+    // Graceful shutdown
+    const shutdown = async (signal) => {
+      console.info(`[shutdown] Received ${signal}. Closing server…`);
+      server.close(async () => {
+        await closeDb();
+        console.info("[shutdown] Clean exit.");
+        process.exit(0);
+      });
+      // Force exit if shutdown takes too long
+      setTimeout(() => {
+        console.error("[shutdown] Forced exit after timeout.");
+        process.exit(1);
+      }, 10_000).unref();
+    };
+
+    process.once("SIGTERM", () => shutdown("SIGTERM"));
+    process.once("SIGINT", () => shutdown("SIGINT"));
+  } catch (err) {
+    console.error("[startup] Failed to start:", err);
+    process.exit(1);
+  }
+}
+
+start();
