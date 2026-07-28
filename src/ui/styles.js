@@ -117,6 +117,11 @@ body {
   100% { transform: translate(-20px, 40px) scale(0.95); }
 }
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* App Header & Navigation */
 .app-header {
   position: sticky;
@@ -471,20 +476,21 @@ body {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  padding: 1.6rem;
+  padding: 2rem 1.8rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 1.25rem;
+  gap: 1.4rem;
   transition: var(--transition);
   backdrop-filter: blur(12px);
   position: relative;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .app-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(99, 102, 241, 0.4);
-  box-shadow: var(--shadow-lg);
+  transform: translateY(-4px) scale(1.01);
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
 }
 
 .app-card-header {
