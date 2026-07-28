@@ -378,10 +378,11 @@ function renderAppsGrid(appsList) {
       <button class="btn btn-secondary btn-sm" onclick="openSubmissionsModal('\${escapeHtml(app.appName)}')">Submissions</button>
       <button class="btn btn-secondary btn-sm" onclick="openLiveTestModal('\${escapeHtml(app.appName)}')">Test</button>
      </div>
-     <button class="btn btn-danger btn-sm" onclick="deleteApp('\${escapeHtml(app.appName)}')" title="Delete App"></button>
+     <button class="btn btn-danger btn-sm" onclick="deleteApp('\${escapeHtml(app.appName)}')" title="Delete App" style="display:flex;align-items:center;gap:0.3rem;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg> Delete</button>
     </div>
    </div>
   \`;
+
  }).join('');
  
  
@@ -530,7 +531,7 @@ async function openEditAppModal(appName) {
  state.activeTab = 'general';
  document.getElementById('app-modal-title').innerText = 'Manage Form App: ' + app.appName;
  document.getElementById('app-name-input').value = app.appName;
- document.getElementById('app-name-input').disabled = true; // slug cannot be renamed
+ document.getElementById('app-name-input').disabled = false; // renaming is allowed
 
  const settings = app.settings || {};
  document.getElementById('app-title-input').value = settings.appTitle || app.appName;
@@ -969,9 +970,14 @@ async function saveApp() {
   }
  }
 
- const payload = state.editingApp ? { fields, settings } : { appName, fields, settings };
+ const newAppName = (document.getElementById('app-name-input').value || '').trim().toLowerCase();
+ const isRename = state.editingApp && newAppName && newAppName !== state.editingApp.appName;
+ const payload = state.editingApp
+  ? { fields, settings, ...(isRename ? { newAppName } : {}) }
+  : { appName, fields, settings };
  const url = state.editingApp ? '/api/apps/' + encodeURIComponent(state.editingApp.appName) : '/api/apps';
  const method = state.editingApp ? 'PUT' : 'POST';
+ const effectiveAppName = state.editingApp ? (isRename ? newAppName : state.editingApp.appName) : appName;
 
  try {
   const res = await fetch(url, {
@@ -988,11 +994,12 @@ async function saveApp() {
    return;
   }
   showToast('Application schema saved successfully!', 'success');
+  if (isRename) { showToast('App renamed to "' + effectiveAppName + '"', 'success'); }
   closeModal('app-editor-modal');
   await loadApps();
   
   if (method === 'POST') {
-   openApiHubModal(appName);
+   openApiHubModal(effectiveAppName);
   }
  } catch (e) {
   showToast('Network error saving application.', 'error');
@@ -1030,7 +1037,7 @@ function openApiHubModal(appName) {
  const origin = window.location.origin;
  const submitUrl = origin + '/api/' + encodeURIComponent(state.user.username) + '/' + encodeURIComponent(app.appName) + '/';
  
- document.getElementById('api-hub-endpoint-url').value = submitUrl;
+ document.getElementById('hub-submit-url').value = submitUrl;
  
  // Generate HTML Snippet
  const htmlSnippet = buildHtmlFormSnippet(app, submitUrl);
@@ -1048,7 +1055,7 @@ function openApiHubModal(appName) {
 }
 
 function copyEndpointUrl(btnEl) {
- const url = document.getElementById('api-hub-endpoint-url').value;
+ const url = document.getElementById('hub-submit-url').value;
  navigator.clipboard.writeText(url).then(() => {
   btnEl.innerHTML = 'Copied';
   
@@ -1271,6 +1278,7 @@ async function inspectSubmissionStatus(submissionId) {
   openModal('inspect-submission-modal');
  } catch (e) {
   showToast('Network error loading details.', 'error');
+    console.error('[inspectSubmission]', e);
  }
 }
 
