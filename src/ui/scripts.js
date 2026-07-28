@@ -13,6 +13,20 @@ let state = {
  hubApp: null
 };
 
+// ── Cloudflare Turnstile Platform CAPTCHA ──────────────────────────────
+const _tsTokens = { login: null, register: null, createApp: null };
+function onLoginTurnstileSuccess(token) { _tsTokens.login = token; }
+function onLoginTurnstileExpired() { _tsTokens.login = null; }
+function onRegisterTurnstileSuccess(token) { _tsTokens.register = token; }
+function onRegisterTurnstileExpired() { _tsTokens.register = null; }
+function onCreateAppTurnstileSuccess(token) { _tsTokens.createApp = token; }
+function onCreateAppTurnstileExpired() { _tsTokens.createApp = null; }
+function resetTurnstile(id) {
+ if (typeof turnstile !== 'undefined') {
+  try { turnstile.reset(document.getElementById(id)); } catch(e) {}
+ } else { _tsTokens[id === 'login-turnstile' ? 'login' : id === 'register-turnstile' ? 'register' : 'createApp'] = null; }
+}
+
 // DOM Content Loaded - Init Application
 document.addEventListener('DOMContentLoaded', async () => {
  initTheme();
@@ -966,7 +980,7 @@ async function saveApp() {
     'Content-Type': 'application/json',
     'Authorization': 'Bearer ' + state.token
    },
-   body: JSON.stringify(payload)
+   body: JSON.stringify(method === 'POST' ? { ...payload, turnstileToken: _tsTokens.createApp || '' } : payload)
   });
   const data = await res.json();
   if (!data.ok) {
@@ -1540,7 +1554,7 @@ async function handleLoginSubmit(e) {
   const res = await fetch('/api/login', {
    method: 'POST',
    headers: { 'Content-Type': 'application/json' },
-   body: JSON.stringify({ username, password })
+   body: JSON.stringify({ username, password, turnstileToken: _tsTokens.login || '' })
   });
   const data = await res.json();
   if (data.ok && data.token) {
@@ -1580,7 +1594,7 @@ async function handleRegisterSubmit(e) {
   const res = await fetch('/api/register', {
    method: 'POST',
    headers: { 'Content-Type': 'application/json' },
-   body: JSON.stringify({ username, email, password })
+   body: JSON.stringify({ username, email, password, turnstileToken: _tsTokens.register || '' })
   });
   const data = await res.json();
   if (data.ok && data.token) {

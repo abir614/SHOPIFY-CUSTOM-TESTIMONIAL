@@ -3,7 +3,8 @@ import { SCRIPTS } from "./scripts.js";
 import { SECURITY_HEADERS } from "../security.js";
 
 export function renderUI(request) {
- const html = `<!DOCTYPE html>
+  const siteKey = process.env.PLATFORM_TURNSTILE_SITE_KEY || "1x00000000000000000000AA";
+  const html = `<!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
  <meta charset="UTF-8" />
@@ -13,6 +14,8 @@ export function renderUI(request) {
  <link rel="preconnect" href="https://fonts.googleapis.com" />
  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+ <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+ <script>window.PLATFORM_TURNSTILE_SITE_KEY = "${siteKey}";</script>
  <style>
   ${STYLES}
  </style>
@@ -74,6 +77,9 @@ export function renderUI(request) {
       <input type="password" id="login-password" class="form-input" placeholder="••••••••" required />
      </div>
     </div>
+    <div style="display:flex; justify-content:center; margin: 0.5rem 0 0.25rem;">
+     <div class="cf-turnstile" id="login-turnstile" data-sitekey="${siteKey}" data-theme="dark" data-callback="onLoginTurnstileSuccess" data-expired-callback="onLoginTurnstileExpired"></div>
+    </div>
     <div class="modal-footer">
      <button type="button" class="btn btn-secondary" onclick="closeModal('login-modal')">Cancel</button>
      <button type="submit" class="btn btn-primary">Sign In</button>
@@ -105,6 +111,9 @@ export function renderUI(request) {
       <label class="form-label">Password</label>
       <input type="password" id="reg-password" class="form-input" placeholder="At least 8 characters" minlength="8" required />
      </div>
+    </div>
+    <div style="display:flex; justify-content:center; margin: 0.5rem 0 0.25rem;">
+     <div class="cf-turnstile" id="register-turnstile" data-sitekey="${siteKey}" data-theme="dark" data-callback="onRegisterTurnstileSuccess" data-expired-callback="onRegisterTurnstileExpired"></div>
     </div>
     <div class="modal-footer">
      <button type="button" class="btn btn-secondary" onclick="closeModal('register-modal')">Cancel</button>
@@ -320,10 +329,13 @@ export function renderUI(request) {
      </div>
     </div>
    </div>
-   <div class="modal-footer">
-    <button type="button" class="btn btn-secondary" onclick="closeModal('app-editor-modal')">Cancel</button>
-    <button type="button" class="btn btn-primary" onclick="saveApp()">Save Form Schema</button>
-   </div>
+    <div style="display:flex; justify-content:center; margin-bottom:0.75rem;">
+     <div class="cf-turnstile" id="create-app-turnstile" data-sitekey="${siteKey}" data-theme="dark" data-callback="onCreateAppTurnstileSuccess" data-expired-callback="onCreateAppTurnstileExpired"></div>
+    </div>
+    <div class="modal-footer">
+     <button type="button" class="btn btn-secondary" onclick="closeModal('app-editor-modal')">Cancel</button>
+     <button type="button" class="btn btn-primary" onclick="saveApp()">Save Form Schema</button>
+    </div>
   </div>
  </div>
 
