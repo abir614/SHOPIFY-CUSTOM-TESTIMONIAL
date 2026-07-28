@@ -1,0 +1,19 @@
+{
+  "name": "formhub-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Multi-tenant form intake platform on Node.js + MongoDB. Register, log in, define your own form fields, and collect submissions at /:username/:appname/ with optional Shopify metaobject sync.",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node tests/logic.test.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.600.0",
+    "express": "^4.21.2",
+    "jose": "^5.9.6",
+    "mongodb": "^6.10.0",
+    "multer": "^1.4.5-lts.1"
+  }
+}
