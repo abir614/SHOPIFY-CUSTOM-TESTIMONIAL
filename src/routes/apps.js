@@ -100,6 +100,7 @@ async function sanitizeSettings(rawSettings = {}, existingSettings = {}) {
       adminAccessTokenEnc,
       imageFieldKey: typeof rawSettings.shopify.imageFieldKey === "string" ? rawSettings.shopify.imageFieldKey.trim() : "",
       fieldMapping: rawSettings.shopify.fieldMapping && typeof rawSettings.shopify.fieldMapping === "object" ? rawSettings.shopify.fieldMapping : {},
+      dualWrite: rawSettings.shopify.dualWrite === true,
     };
   }
 

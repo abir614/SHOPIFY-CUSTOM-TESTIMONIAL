@@ -154,11 +154,10 @@ export async function handleSubmit(request, username, appName, corsHeaders) {
 
   if (app.settings.shopify?.enabled) {
     const adminAccessToken = await decryptSecret(app.settings.shopify.adminAccessTokenEnc);
-    const syncResult = await createMetaobject(
-      { ...app.settings.shopify, adminAccessToken },
-      data,
-      app.settings.shopify.fieldMapping
-    );
+    const shopifyConfig = { ...app.settings.shopify, adminAccessToken };
+
+    // -- Primary write (always): e.g. story_intake --
+    const syncResult = await createMetaobject(shopifyConfig, data, app.settings.shopify.fieldMapping);
     await submissions.updateOne(
       { _id: insertResult.insertedId },
       {
@@ -169,6 +168,70 @@ export async function handleSubmit(request, username, appName, corsHeaders) {
         },
       }
     );
+
+    // -- Dual write (conditional): testimonial or pet_testimonial --
+    // Mirrors the original Cloudflare Worker logic exactly.
+    // Triggered only when app.settings.shopify.dualWrite === true
+    // AND the submitter granted permission_to_share.
+    if (app.settings.shopify.dualWrite === true) {
+      const permissionToShare = String(data.permission_to_share || "");
+      if (permissionToShare.includes("Yes")) {
+        const isPetStory = String(data.is_pet_story || "").trim() === "true";
+        const authorName = permissionToShare.includes("anonymous")
+          ? "Anonymous"
+          : (data.name || "Anonymous");
+        const quote = data.experience_story || "";
+
+        let secondaryType, secondaryFields;
+
+        if (isPetStory) {
+          secondaryType = "pet_testimonial";
+          secondaryFields = {
+            author_name:   authorName,
+            provider_name: data.hospital || "",
+            pet_name:      data.loved_one_name || "",
+            quote,
+            // pet_image already resolved to a Shopify file ID in data if uploaded
+            ...(data.user_image ? { pet_image: data.user_image } : {}),
+          };
+        } else {
+          secondaryType = "testimonial";
+          secondaryFields = {
+            display_name: authorName,
+            hospital:     data.hospital || "",
+            role:         data.role || "",
+            quote,
+            ...(data.user_image ? { user_image: data.user_image } : {}),
+          };
+        }
+
+        // Remove empty values before sending to Shopify
+        for (const k of Object.keys(secondaryFields)) {
+          if (secondaryFields[k] === "") delete secondaryFields[k];
+        }
+
+        const secondaryConfig = { ...shopifyConfig, metaobjectType: secondaryType };
+        const secondaryResult = await createMetaobject(secondaryConfig, secondaryFields, {});
+
+        if (secondaryResult.ok) {
+          console.log(`[shopify] dual-write ${secondaryType} created:`, secondaryResult.handle);
+        } else {
+          console.error(`[shopify] dual-write ${secondaryType} failed:`,
+            JSON.stringify([...(secondaryResult.userErrors || []), ...(secondaryResult.systemErrors || [])]));
+        }
+
+        await submissions.updateOne(
+          { _id: insertResult.insertedId },
+          {
+            $set: {
+              shopifyDualWriteType:   secondaryType,
+              shopifyDualWriteStatus: secondaryResult.ok ? "synced" : "failed",
+              shopifyDualWriteHandle: secondaryResult.handle || null,
+            },
+          }
+        );
+      }
+    }
   }
 
   if (app.settings?.webhookUrl) {
