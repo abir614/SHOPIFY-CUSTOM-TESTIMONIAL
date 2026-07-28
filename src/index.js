@@ -4,7 +4,7 @@ import { handleRegister } from "./routes/register.js";
 import { handleLogin } from "./routes/login.js";
 import { handleListApps, handleCreateApp, handleGetApp, handleUpdateApp, handleDeleteApp } from "./routes/apps.js";
 import { handleListSubmissions, handleGetSubmission } from "./routes/submissions.js";
-import { handleGetAppSchema, handleSubmit, findApp } from "./routes/submit.js";
+import { handleSubmit, findApp } from "./routes/submit.js";
 import { renderUI } from "./ui/html.js";
 
 const DASHBOARD_PREFIXES = [
@@ -97,13 +97,17 @@ export async function handleRequest(request) {
       const formSegments = path.slice(4).split("/").filter(Boolean);
       if (formSegments.length === 2) {
         const [username, appName] = formSegments;
-        if (request.method === "OPTIONS") {
+      if (request.method === "OPTIONS") {
           const app = await findApp(username, appName);
           const allowed = app ? app.settings.allowedOrigins : [];
-          return handlePreflight(request, allowed, "GET, POST, OPTIONS");
+          return handlePreflight(request, allowed, "POST, OPTIONS");
         }
         if (request.method === "POST") return await handleSubmit(request, username, appName, {});
-        if (request.method === "GET") return await handleGetAppSchema(request, username, appName, {});
+        return jsonResponse(
+          { error: "Method not allowed. Form endpoints only accept POST requests." },
+          405,
+          { Allow: "POST, OPTIONS" }
+        );
       }
     }
 
