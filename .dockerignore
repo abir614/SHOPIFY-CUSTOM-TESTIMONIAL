@@ -1,13 +1,50 @@
-node_modules/
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files
 .env
 .env.*
-tests/
-*.md
-.git/
+!.env.example
+
+# Git
+.git
 .gitignore
-.vscode/
-.idea/
-*.swp
-*.swo
+
+# Docker
+.dockerignore
+docker-compose.yml
+
+# IDEs
+.vscode
+.idea
+
+# OS files
 .DS_Store
 Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Coverage
+coverage
+.nyc_output
+
+# Build output
+dist
+build
+
+# Temporary files
+tmp
+temp
+*.tmp
+
+# Documentation (optional)
+README.md
+
+# Fly.io (optional - not needed inside the image)
+fly.toml
