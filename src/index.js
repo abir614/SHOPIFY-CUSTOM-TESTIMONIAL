@@ -9,7 +9,6 @@ import { handleListApiKeys, handleCreateApiKey, handleDeleteApiKey } from "./rou
 import { handleListBundles, handleCreateBundle, handleDeleteBundle } from "./routes/bundles.js";
 import { handleApiGateway } from "./routes/apigateway.js";
 import { renderUI } from "./ui/html.js";
-
 const DASHBOARD_PREFIXES = [
   "/api/register",
   "/api/login",
@@ -18,28 +17,21 @@ const DASHBOARD_PREFIXES = [
   "/api/apikeys",
   "/api/bundles",
 ];
-
 function isDashboardPath(path) {
   return path === "/api" ||
     DASHBOARD_PREFIXES.some((p) => path === p || path.startsWith(p + "/"));
 }
-
 async function handleDashboardApi(request, path, dashboardHeaders) {
   const method = request.method;
-
   if (path === "/api/register" && method === "POST") return handleRegister(request, dashboardHeaders);
   if (path === "/api/login" && method === "POST") return handleLogin(request, dashboardHeaders);
-
   const auth = await requireAuth(request);
   if (auth.error) return jsonResponse({ error: auth.message }, auth.status, dashboardHeaders);
-
   if (path === "/api/me" && method === "GET") {
     return jsonResponse({ ok: true, user: { username: auth.username, email: auth.email } }, 200, dashboardHeaders);
   }
-
   if (path === "/api/apps" && method === "GET") return handleListApps(request, auth, dashboardHeaders);
   if (path === "/api/apps" && method === "POST") return handleCreateApp(request, auth, dashboardHeaders);
-
   const appMatch = path.match(/^\/api\/apps\/([^/]+)$/);
   if (appMatch) {
     const appName = decodeURIComponent(appMatch[1]);
@@ -47,45 +39,35 @@ async function handleDashboardApi(request, path, dashboardHeaders) {
     if (method === "PUT") return handleUpdateApp(request, auth, appName, dashboardHeaders);
     if (method === "DELETE") return handleDeleteApp(request, auth, appName, dashboardHeaders);
   }
-
   const submissionsMatch = path.match(/^\/api\/apps\/([^/]+)\/submissions$/);
   if (submissionsMatch && method === "GET") {
     return handleListSubmissions(request, auth, decodeURIComponent(submissionsMatch[1]), dashboardHeaders);
   }
-
   const submissionMatch = path.match(/^\/api\/apps\/([^/]+)\/submissions\/([^/]+)$/);
   if (submissionMatch && method === "GET") {
     return handleGetSubmission(request, auth, decodeURIComponent(submissionMatch[1]), decodeURIComponent(submissionMatch[2]), dashboardHeaders);
   }
-
   if (path === "/api/apikeys" && method === "GET") return handleListApiKeys(request, auth, dashboardHeaders);
   if (path === "/api/apikeys" && method === "POST") return handleCreateApiKey(request, auth, dashboardHeaders);
-
   const apikeyMatch = path.match(/^\/api\/apikeys\/([^/]+)$/);
   if (apikeyMatch && method === "DELETE") return handleDeleteApiKey(request, auth, apikeyMatch[1], dashboardHeaders);
-
   if (path === "/api/bundles" && method === "GET") return handleListBundles(request, auth, dashboardHeaders);
   if (path === "/api/bundles" && method === "POST") return handleCreateBundle(request, auth, dashboardHeaders);
-
   const bundleMatch = path.match(/^\/api\/bundles\/([^/]+)$/);
   if (bundleMatch && method === "DELETE") return handleDeleteBundle(request, auth, bundleMatch[1], dashboardHeaders);
   if (bundleMatch && method === "PUT") return handleCreateBundle(request, auth, dashboardHeaders);
-
   return jsonResponse({ error: "Not found" }, 404, dashboardHeaders);
 }
-
 export async function handleRequest(request) {
   try {
     const url = new URL(request.url);
     const path = url.pathname;
-
     if (path === "/health" && request.method === "GET") {
       return jsonResponse({ ok: true }, 200);
     }
     if (path === "/favicon.ico" || path.startsWith("/.well-known/")) {
       return new Response(null, { status: 204 });
     }
-
     const UI_ROUTES = new Set([
       "/", "/login", "/register", "/dashboard", "/apps", "/submissions",
       "/guide", "/docs", "/settings", "/logout", "/home"
@@ -100,17 +82,14 @@ export async function handleRequest(request) {
     ) {
       return renderUI(request);
     }
-
     const lowerPath = path.toLowerCase();
     if (lowerPath === "/api" || lowerPath.startsWith("/api/")) {
-      
       const gatewayMatch = path.match(/^\/api\/(abir_[0-9a-f]{64})(\/.*)?$/i);
       if (gatewayMatch) {
         const rawKey = gatewayMatch[1];
         const subPath = gatewayMatch[2] || "";
         return await handleApiGateway(request, rawKey, subPath);
       }
-
       if (isDashboardPath(path)) {
         const dashboardOrigins = process.env.DASHBOARD_ALLOWED_ORIGINS || "*";
         if (request.method === "OPTIONS") {
@@ -120,13 +99,10 @@ export async function handleRequest(request) {
         if (!originCheck.allowed) return jsonResponse({ error: "Forbidden" }, 403, originCheck.headers);
         return await handleDashboardApi(request, path, originCheck.headers);
       }
-
       const formSegments = path.slice(4).split("/").filter(Boolean);
       if (formSegments.length === 2) {
         const [username, name] = formSegments; 
-        
         if (request.method === "OPTIONS") {
-          
           let allowed = [];
           const app = await findApp(username, name);
           if (app) {
@@ -137,9 +113,7 @@ export async function handleRequest(request) {
           }
           return handlePreflight(request, allowed, "POST, OPTIONS");
         }
-        
         if (request.method === "POST") {
-          
           const app = await findApp(username, name);
           if (app) {
             return await handleSubmit(request, username, name, {});
@@ -156,16 +130,12 @@ export async function handleRequest(request) {
           { Allow: "POST, OPTIONS" }
         );
       }
-
       return jsonResponse({ error: "Not found." }, 404);
     }
-
     if (request.method === "GET" && request.headers.get("Accept")?.includes("text/html")) {
       return renderUI(request);
     }
-
     return jsonResponse({ error: "Not found" }, 404);
-
   } catch (err) {
     console.error("[unhandled]", err instanceof Error && err.stack ? err.stack : err);
     const msg = err instanceof Error ? err.message : String(err);

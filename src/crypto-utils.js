@@ -1,15 +1,12 @@
 const PBKDF2_ITERATIONS = 100_000;
 const PBKDF2_HASH = "SHA-256";
 const KEY_LENGTH_BITS = 256;
-
 function toBase64(bytes) {
   return Buffer.from(bytes).toString("base64");
 }
-
 function fromBase64(b64) {
   return new Uint8Array(Buffer.from(b64, "base64"));
 }
-
 export async function hashPassword(password) {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const keyMaterial = await crypto.subtle.importKey(
@@ -26,7 +23,6 @@ export async function hashPassword(password) {
   );
   return `pbkdf2$${PBKDF2_ITERATIONS}$${toBase64(salt)}$${toBase64(new Uint8Array(derived))}`;
 }
-
 export async function verifyPassword(password, stored) {
   if (typeof stored !== "string") return false;
   const parts = stored.split("$");
@@ -54,18 +50,15 @@ export async function verifyPassword(password, stored) {
   for (let i = 0; i < derived.length; i++) diff |= derived[i] ^ expected[i];
   return diff === 0;
 }
-
 function getEncryptionKey(env) {
   const key = env?.ENCRYPTION_KEY || process.env.ENCRYPTION_KEY;
   if (!key) throw new Error("ENCRYPTION_KEY environment variable is not set.");
   return fromBase64(key);
 }
-
 async function importEncryptionKey(env) {
   const raw = getEncryptionKey(env);
   return crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["encrypt", "decrypt"]);
 }
-
 export async function encryptSecret(envOrText, maybeText) {
   const env = maybeText !== undefined ? envOrText : null;
   const plaintext = maybeText !== undefined ? maybeText : envOrText;
@@ -79,7 +72,6 @@ export async function encryptSecret(envOrText, maybeText) {
   );
   return `${toBase64(iv)}:${toBase64(new Uint8Array(cipher))}`;
 }
-
 export async function decryptSecret(envOrText, maybeText) {
   const env = maybeText !== undefined ? envOrText : null;
   const stored = maybeText !== undefined ? maybeText : envOrText;

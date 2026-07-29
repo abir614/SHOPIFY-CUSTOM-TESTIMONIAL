@@ -1,13 +1,10 @@
 import { MongoClient } from "mongodb";
-
 let client = null;
 let db = null;
-
 export async function connectDb() {
   if (db) return db;
   const uri = process.env.MONGODB_URI;
   if (!uri) throw new Error("MONGODB_URI environment variable is not set.");
-
   client = new MongoClient(uri, {
     maxPoolSize: 10,
     minPoolSize: 2,
@@ -18,19 +15,16 @@ export async function connectDb() {
     tlsAllowInvalidCertificates: false,
     tlsAllowInvalidHostnames: false,
   });
-
   await client.connect();
   db = process.env.MONGODB_DB_NAME ? client.db(process.env.MONGODB_DB_NAME) : client.db();
   await ensureIndexes(db);
   console.info("[db] Connected to MongoDB and indexes ensured.");
   return db;
 }
-
 export function getDb() {
   if (!db) throw new Error("Database not initialised. Call connectDb() first.");
   return db;
 }
-
 async function ensureIndexes(database) {
   await Promise.all([
     database.collection("users").createIndex({ username: 1 }, { unique: true }),
@@ -44,7 +38,6 @@ async function ensureIndexes(database) {
     database.collection("bundles").createIndex({ ownerUsername: 1, bundleName: 1 }, { unique: true }),
   ]);
 }
-
 export function getCollections() {
   const database = getDb();
   return {
@@ -55,7 +48,6 @@ export function getCollections() {
     bundles: database.collection("bundles"),
   };
 }
-
 export async function closeDb() {
   if (client) {
     await client.close();

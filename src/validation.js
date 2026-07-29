@@ -4,7 +4,6 @@ export const DEFAULT_MAX_FILE_BYTES = 10 * 1024 * 1024;
 export const DEFAULT_MAX_FORM_FIELDS = 40;
 export const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,48}[a-z0-9])?$/;
 export const USERNAME_RE = /^[a-z0-9]{4,10}$/;
-
 export function sanitizeText(str) {
   if (typeof str !== 'string') return '';
   return str
@@ -14,22 +13,17 @@ export function sanitizeText(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
-
 export const FIELD_TYPES = ["text", "textarea", "email", "select", "checkbox", "date", "number", "tel", "url", "radio", "file"];
-
 export const EXT_BY_MIME = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/gif": "gif",
   "image/webp": "webp",
 };
-
 export class BodyTooLargeError extends Error {}
-
 export function errMessage(e) {
   return e instanceof Error ? e.message : String(e);
 }
-
 export async function readBodyWithLimit(request, maxBytes) {
   if (!request.body) return new Uint8Array(0);
   const reader = request.body.getReader();
@@ -53,7 +47,6 @@ export async function readBodyWithLimit(request, maxBytes) {
   }
   return out;
 }
-
 export function sniffMimeType(bytes) {
   if (bytes.length >= 3 && bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) return "image/jpeg";
   if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47
@@ -72,7 +65,6 @@ export function sniffMimeType(bytes) {
   if (bytes.length >= 4 && bytes[0] === 0x1A && bytes[1] === 0x45 && bytes[2] === 0xDF && bytes[3] === 0xA3) return "video/webm";
   return null;
 }
-
 export function stripJpegExif(bytes) {
   if (bytes.length < 4 || bytes[0] !== 255 || bytes[1] !== 216) return bytes;
   const out = new Uint8Array(bytes.length);
@@ -96,19 +88,15 @@ export function stripJpegExif(bytes) {
   out.set(bytes.subarray(n), w); w += bytes.length - n;
   return out.subarray(0, w);
 }
-
 export function validateFieldValue(fieldSchema, rawValue) {
   const maxLength = fieldSchema.maxLength || DEFAULT_MAX_FIELD_LENGTH;
   const isEmpty = typeof rawValue !== "string" || rawValue.trim() === "";
-
   if (fieldSchema.required && isEmpty) {
     return { ok: false, message: `${fieldSchema.label || fieldSchema.key} is required.` };
   }
   if (isEmpty) return { ok: true, value: "" };
-
   const sanitized = sanitizeText(rawValue);
   const value = sanitized.slice(0, maxLength);
-
   if (fieldSchema.pattern && value) {
     try {
       const regex = new RegExp(fieldSchema.pattern);
@@ -117,15 +105,12 @@ export function validateFieldValue(fieldSchema, rawValue) {
       }
     } catch (_) {}
   }
-
   if (fieldSchema.type === "email" && !EMAIL_REGEX.test(value)) {
     return { ok: false, message: `${fieldSchema.label || fieldSchema.key} must be a valid email address.` };
   }
-
   if (fieldSchema.type === "url" && !/^https?:\/\/.+/i.test(value)) {
     return { ok: false, message: `${fieldSchema.label || fieldSchema.key} must be a valid URL starting with http:// or https://.` };
   }
-
   if (fieldSchema.type === "number") {
     const num = Number(value);
     if (!Number.isFinite(num)) {
@@ -139,20 +124,16 @@ export function validateFieldValue(fieldSchema, rawValue) {
     }
     return { ok: true, value };
   }
-
   if ((fieldSchema.type === "select" || fieldSchema.type === "radio") && Array.isArray(fieldSchema.options) && fieldSchema.options.length > 0) {
     if (fieldSchema.options.includes(value)) return { ok: true, value };
-    if (fieldSchema.allowOther && fieldSchema.options.includes("Other")) return { ok: true, value: "Other" };
+    if (fieldSchema.allowOther) return { ok: true, value };
     return { ok: false, message: `${fieldSchema.label || fieldSchema.key} must be one of the allowed options.` };
   }
-
   if (fieldSchema.type === "checkbox") {
     return { ok: true, value: value === "true" || value === "on" || value === "1" ? "true" : "false" };
   }
-
   return { ok: true, value };
 }
-
 export function validateSubmission(fields, formData) {
   const data = {};
   const errors = [];
@@ -167,5 +148,4 @@ export function validateSubmission(fields, formData) {
   }
   return errors.length > 0 ? { ok: false, errors } : { ok: true, data };
 }
-
 export const sniffImageMime = sniffMimeType;

@@ -1,14 +1,11 @@
 import { SignJWT, jwtVerify } from "jose";
-
 const ALG = "HS256";
 const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
-
 function getSigningKey(env) {
   const secret = env?.JWT_SECRET || process.env.JWT_SECRET;
   if (!secret) throw new Error("JWT_SECRET environment variable is not set.");
   return new TextEncoder().encode(secret);
 }
-
 export async function issueToken(envOrUser, maybeUser) {
   const env = maybeUser !== undefined ? envOrUser : null;
   const user = maybeUser !== undefined ? maybeUser : envOrUser;
@@ -20,7 +17,6 @@ export async function issueToken(envOrUser, maybeUser) {
     .setExpirationTime(`${TOKEN_TTL_SECONDS}s`)
     .sign(key);
 }
-
 export async function verifyToken(envOrToken, maybeToken) {
   const env = maybeToken !== undefined ? envOrToken : null;
   const token = maybeToken !== undefined ? maybeToken : envOrToken;
@@ -32,13 +28,11 @@ export async function verifyToken(envOrToken, maybeToken) {
     return null;
   }
 }
-
 function extractBearerToken(request) {
   const header = request.headers.get("Authorization") || "";
   const match = header.match(/^Bearer\s+(.+)$/i);
   return match ? match[1].trim() : null;
 }
-
 export async function requireAuth(request) {
   const token = extractBearerToken(request);
   if (!token) {
