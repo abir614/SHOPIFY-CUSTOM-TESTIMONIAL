@@ -6,9 +6,6 @@ import { handleSubmit } from "./submit.js";
 
 const KEY_RE = /^abir_[0-9a-f]{64}$/i;
 
-/** Check whether an API key is valid and has the requested action + app permission.
- *  Returns { error, status, message } on failure, or { key, ownerUserId, ownerUsername } on success.
- */
 async function resolveApiKey(rawKey, requiredAction, appName = null) {
   if (!KEY_RE.test(rawKey)) {
     return { error: true, status: 404, message: "API key not found." };
@@ -25,25 +22,21 @@ async function resolveApiKey(rawKey, requiredAction, appName = null) {
     return { error: true, status: 401, message: "API key has been revoked." };
   }
 
-  // Check action permission
   if (!keyDoc.permissions.actions.includes(requiredAction)) {
     return { error: true, status: 403, message: `This API key does not have '${requiredAction}' permission.` };
   }
 
-  // Check app-level permission
   if (appName && keyDoc.permissions.apps !== "*") {
     if (!keyDoc.permissions.apps.includes(appName)) {
       return { error: true, status: 403, message: `This API key is not permitted to access app '${appName}'.` };
     }
   }
 
-  // Resolve owner
   const owner = await users.findOne({ _id: new ObjectId(keyDoc.userId) });
   if (!owner) {
     return { error: true, status: 401, message: "API key owner not found." };
   }
 
-  // Async update lastUsedAt (non-blocking)
   apikeys.updateOne({ _id: keyDoc._id }, { $set: { lastUsedAt: new Date() } }).catch(() => {});
 
   return {
@@ -55,15 +48,10 @@ async function resolveApiKey(rawKey, requiredAction, appName = null) {
   };
 }
 
-/**
- * Main gateway handler called with the full request and the path *after* the key segment.
- * e.g. for /api/fhk_xxx/apps/my-app/submissions the subPath would be /apps/my-app/submissions
- */
 export async function handleApiGateway(request, rawKey, subPath) {
   const method = request.method;
   const corsHeaders = { "Access-Control-Allow-Origin": "*", Vary: "Origin" };
 
-  // CORS preflight
   if (method === "OPTIONS") {
     return new Response(null, {
       status: 204,
@@ -76,14 +64,12 @@ export async function handleApiGateway(request, rawKey, subPath) {
     });
   }
 
-  // Rate-limit by API key
   const ip = clientIp(request);
   const rateLimitKey = `apikey:${rawKey.slice(0, 20)}:${ip}`;
   if (!checkRateLimit(null, rateLimitKey, 60, 60)) {
     return jsonResponse({ error: "Rate limit exceeded. Please slow down." }, 429, corsHeaders);
   }
 
-  // ── Route: GET /apps ─────────────────────────────────────────────────────
   if (subPath === "/apps" && method === "GET") {
     const auth = await resolveApiKey(rawKey, "read");
     if (auth.error) return jsonResponse({ error: auth.message }, auth.status, corsHeaders);
@@ -108,7 +94,6 @@ export async function handleApiGateway(request, rawKey, subPath) {
     return jsonResponse({ ok: true, apps: publicList }, 200, corsHeaders);
   }
 
-  // ── Routes under /apps/{appName} ─────────────────────────────────────────
   const submissionsListMatch = subPath.match(/^\/apps\/([^/]+)\/submissions$/);
   const submissionItemMatch = subPath.match(/^\/apps\/([^/]+)\/submissions\/([^/]+)$/);
   const submitMatch = subPath.match(/^\/apps\/([^/]+)\/submit$/);
@@ -140,7 +125,6 @@ export async function handleApiGateway(request, rawKey, subPath) {
     return handleSubmit(request, auth.ownerUsername, appName, corsHeaders);
   }
 
-  // ── Method not allowed on known paths ────────────────────────────────────
   if (
     submissionsListMatch ||
     submissionItemMatch ||
