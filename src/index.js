@@ -128,7 +128,6 @@ export async function handleRequest(request) {
         );
       }
 
-      // /api/* paths never render UI — always return JSON
       return jsonResponse({ error: "Not found." }, 404);
     }
 
