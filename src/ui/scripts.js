@@ -381,7 +381,7 @@ function renderAppsGrid(appsList) {
   const turnstileConfigured = app.settings?.turnstile?.enabled;
   const fieldsCount = Array.isArray(app.fields) ? app.fields.length : 0;
   const originCount = Array.isArray(app.settings?.allowedOrigins) ? app.settings.allowedOrigins.length : 0;
-  const fullSubmitPath = '/' + encodeURIComponent(state.user.username) + '/' + encodeURIComponent(app.appName) + '/';
+  const fullSubmitPath = '/api/' + encodeURIComponent(state.user.username) + '/' + encodeURIComponent(app.appName) + '/';
 
   return \`
    <div class="app-card">
