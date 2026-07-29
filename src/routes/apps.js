@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb";
 import { jsonResponse, verifyPlatformTurnstile } from "../security.js";
 import { getCollections } from "../db.js";
-import { encryptSecret } from "../crypto-utils.js";
+import { encryptSecret, decryptSecret } from "../crypto-utils.js";
 import { FIELD_TYPES, SLUG_RE, DEFAULT_MAX_FIELD_LENGTH, DEFAULT_MAX_FILE_BYTES, DEFAULT_MAX_FORM_FIELDS, sanitizeText } from "../validation.js";
 import { SHOPIFY_DOMAIN_RE } from "../shopify.js";
 
@@ -92,6 +92,41 @@ async function sanitizeSettings(rawSettings = {}, existingSettings = {}) {
     const adminAccessTokenEnc = adminAccessToken ? await encryptSecret(adminAccessToken) : existingSettings.shopify?.adminAccessTokenEnc || "";
     if (!adminAccessTokenEnc) return { error: "shopify.adminAccessToken is required when Shopify sync is enabled." };
 
+    const OPERATORS = ["contains", "not_contains", "equals", "not_equals", "not_empty", "always"];
+    const sanitizeCondition = (raw) => {
+      if (!raw || typeof raw !== "object") return null;
+      return {
+        field: typeof raw.field === "string" ? raw.field.trim().slice(0, 100) : "",
+        operator: OPERATORS.includes(raw.operator) ? raw.operator : "always",
+        value: typeof raw.value === "string" ? raw.value.trim().slice(0, 200) : "",
+      };
+    };
+
+    const sanitizeWrites = (rawWrites) => {
+      if (!Array.isArray(rawWrites)) return [];
+      return rawWrites.slice(0, 10).map((w) => {
+        const type = typeof w?.metaobjectType === "string" ? w.metaobjectType.trim().slice(0, 100) : "";
+        if (!type) return null;
+        const fm = {};
+        if (w?.fieldMapping && typeof w.fieldMapping === "object") {
+          for (const [k, v] of Object.entries(w.fieldMapping)) {
+            if (typeof k === "string" && typeof v === "string" && k.trim() && v.trim()) {
+              fm[k.trim().slice(0, 100)] = v.trim().slice(0, 100);
+            }
+          }
+        }
+        return {
+          metaobjectType: type,
+          imageFieldKey: typeof w?.imageFieldKey === "string" ? w.imageFieldKey.trim().slice(0, 100) : "",
+          fieldMapping: fm,
+          condition: sanitizeCondition(w?.condition),
+          additionalConditions: Array.isArray(w?.additionalConditions)
+            ? w.additionalConditions.slice(0, 5).map(sanitizeCondition).filter(Boolean)
+            : [],
+        };
+      }).filter(Boolean);
+    };
+
     settings.shopify = {
       enabled: true,
       storeDomain,
@@ -100,16 +135,17 @@ async function sanitizeSettings(rawSettings = {}, existingSettings = {}) {
       adminAccessTokenEnc,
       imageFieldKey: typeof rawSettings.shopify.imageFieldKey === "string" ? rawSettings.shopify.imageFieldKey.trim() : "",
       fieldMapping: rawSettings.shopify.fieldMapping && typeof rawSettings.shopify.fieldMapping === "object" ? rawSettings.shopify.fieldMapping : {},
-      dualWrite: rawSettings.shopify.dualWrite === true,
+      writes: sanitizeWrites(rawSettings.shopify.writes),
     };
   }
 
   return { settings };
 }
 
-function toPublicAppView(app) {
+async function toPublicAppView(app) {
   return {
     appName: app.appName,
+    ownerUsername: app.ownerUsername,
     fields: app.fields,
     settings: {
       allowedOrigins: app.settings.allowedOrigins,
@@ -123,7 +159,11 @@ function toPublicAppView(app) {
       redirectUrl: app.settings.redirectUrl,
       themeColor: app.settings.themeColor,
       webhookUrl: app.settings.webhookUrl,
-      turnstile: { enabled: app.settings.turnstile?.enabled || false, configured: Boolean(app.settings.turnstile?.secretKeyEnc) },
+      turnstile: { 
+        enabled: app.settings.turnstile?.enabled || false, 
+        configured: Boolean(app.settings.turnstile?.secretKeyEnc),
+        secretKey: await decryptSecret(app.settings.turnstile?.secretKeyEnc)
+      },
       shopify: app.settings.shopify?.enabled
         ? {
             enabled: true,
@@ -132,7 +172,9 @@ function toPublicAppView(app) {
             metaobjectType: app.settings.shopify.metaobjectType,
             imageFieldKey: app.settings.shopify.imageFieldKey,
             fieldMapping: app.settings.shopify.fieldMapping,
+            writes: app.settings.shopify.writes || [],
             configured: Boolean(app.settings.shopify.adminAccessTokenEnc),
+            adminAccessToken: await decryptSecret(app.settings.shopify.adminAccessTokenEnc)
           }
         : { enabled: false },
     },
@@ -145,7 +187,7 @@ function toPublicAppView(app) {
 export async function handleListApps(request, auth, corsHeaders) {
   const { apps } = getCollections();
   const list = await apps.find({ ownerId: new ObjectId(auth.userId) }).sort({ createdAt: -1 }).toArray();
-  return jsonResponse({ ok: true, apps: list.map(toPublicAppView) }, 200, corsHeaders);
+  return jsonResponse({ ok: true, apps: await Promise.all(list.map(toPublicAppView)) }, 200, corsHeaders);
 }
 
 export async function handleCreateApp(request, auth, corsHeaders) {
@@ -194,14 +236,14 @@ export async function handleCreateApp(request, auth, corsHeaders) {
     throw e;
   }
 
-  return jsonResponse({ ok: true, app: toPublicAppView(doc) }, 201, corsHeaders);
+  return jsonResponse({ ok: true, app: await toPublicAppView(doc) }, 201, corsHeaders);
 }
 
 export async function handleGetApp(request, auth, appName, corsHeaders) {
   const { apps } = getCollections();
   const app = await apps.findOne({ ownerId: new ObjectId(auth.userId), appName });
   if (!app) return jsonResponse({ error: "App not found." }, 404, corsHeaders);
-  return jsonResponse({ ok: true, app: toPublicAppView(app) }, 200, corsHeaders);
+  return jsonResponse({ ok: true, app: await toPublicAppView(app) }, 200, corsHeaders);
 }
 
 export async function handleUpdateApp(request, auth, appName, corsHeaders) {
@@ -218,7 +260,6 @@ export async function handleUpdateApp(request, auth, appName, corsHeaders) {
 
   const update = { updatedAt: new Date() };
 
-  // Optional rename — validate and check uniqueness
   if (body.newAppName !== undefined) {
     const newAppName = typeof body.newAppName === "string" ? body.newAppName.trim().toLowerCase() : "";
     if (!SLUG_RE.test(newAppName) || RESERVED_APP_NAMES.has(newAppName)) {
@@ -245,7 +286,7 @@ export async function handleUpdateApp(request, auth, appName, corsHeaders) {
 
   await apps.updateOne({ _id: existing._id }, { $set: update });
   const updated = await apps.findOne({ _id: existing._id });
-  return jsonResponse({ ok: true, app: toPublicAppView(updated) }, 200, corsHeaders);
+  return jsonResponse({ ok: true, app: await toPublicAppView(updated) }, 200, corsHeaders);
 }
 
 export async function handleDeleteApp(request, auth, appName, corsHeaders) {

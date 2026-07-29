@@ -5,14 +5,14 @@ import { getCollections } from "../db.js";
 import { EMAIL_REGEX, USERNAME_RE } from "../validation.js";
 
 const RESERVED_USERNAMES = new Set([
-  // System & Admin
+  
   "admin", "administrator", "superadmin", "root", "system", "sysadmin", "owner", "master", "hostmaster", "webmaster", "postmaster",
-  // Common terms & Roles
+  
   "support", "help", "billing", "sales", "marketing", "contact", "info", "hello", "team", "staff", "moderator", "user", "guest", "anonymous",
-  // App Routes & Features
+  
   "api", "health", "www", "app", "static", "assets", "public", "private", "images", "css", "js", "auth", "oauth", "webhook", "webhooks",
   "login", "register", "signup", "dashboard", "apps", "submissions", "guide", "docs", "settings", "logout", "home", "profile", "account",
-  // Development & Testing
+  
   "test", "testing", "dev", "developer", "demo", "sandbox", "stage", "staging", "beta", "alpha"
 ]);
 
