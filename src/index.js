@@ -101,7 +101,8 @@ export async function handleRequest(request) {
       return renderUI(request);
     }
 
-    if (path === "/api" || path.startsWith("/api/")) {
+    const lowerPath = path.toLowerCase();
+    if (lowerPath === "/api" || lowerPath.startsWith("/api/")) {
       
       const gatewayMatch = path.match(/^\/api\/(abir_[0-9a-f]{64})(\/.*)?$/i);
       if (gatewayMatch) {
