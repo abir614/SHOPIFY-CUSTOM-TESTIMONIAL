@@ -4,14 +4,12 @@ import { getCollections } from "../db.js";
 import { randomBytes } from "node:crypto";
 
 const KEY_PREFIX = "abir_";
-const KEY_BYTES = 32; // 64 hex chars
+const KEY_BYTES = 32;
 
-/** Generate a cryptographically random API key */
 function generateApiKey() {
   return KEY_PREFIX + randomBytes(KEY_BYTES).toString("hex");
 }
 
-/** Sanitize and validate a permission object from user input */
 function sanitizePermissions(raw = {}) {
   const actions = Array.isArray(raw.actions)
     ? raw.actions.filter((a) => ["read", "submit"].includes(a))
@@ -30,7 +28,6 @@ function sanitizePermissions(raw = {}) {
   return { actions, apps };
 }
 
-/** Convert a DB document to a safe public view (never exposes the raw key after creation) */
 function toPublicKeyView(doc, includeKey = false) {
   return {
     id: String(doc._id),
@@ -43,7 +40,6 @@ function toPublicKeyView(doc, includeKey = false) {
   };
 }
 
-/** GET /api/apikeys — list all keys for the authenticated user */
 export async function handleListApiKeys(request, auth, corsHeaders) {
   const { apikeys } = getCollections();
   const keys = await apikeys
@@ -53,7 +49,6 @@ export async function handleListApiKeys(request, auth, corsHeaders) {
   return jsonResponse({ ok: true, apikeys: keys.map((k) => toPublicKeyView(k)) }, 200, corsHeaders);
 }
 
-/** POST /api/apikeys — create a new key */
 export async function handleCreateApiKey(request, auth, corsHeaders) {
   let body;
   try {
@@ -74,7 +69,6 @@ export async function handleCreateApiKey(request, auth, corsHeaders) {
 
   const { apikeys } = getCollections();
 
-  // Enforce per-user key cap
   const existingCount = await apikeys.countDocuments({
     userId: new ObjectId(auth.userId),
     revokedAt: null,
@@ -97,11 +91,9 @@ export async function handleCreateApiKey(request, auth, corsHeaders) {
 
   await apikeys.insertOne(doc);
 
-  // Return the raw key ONLY on creation
   return jsonResponse({ ok: true, apikey: toPublicKeyView(doc, true) }, 201, corsHeaders);
 }
 
-/** DELETE /api/apikeys/:id — revoke (soft-delete) a key */
 export async function handleDeleteApiKey(request, auth, keyId, corsHeaders) {
   let objectId;
   try {
