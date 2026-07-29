@@ -3,42 +3,32 @@ import { jsonResponse, checkRateLimit, clientIp } from "../security.js";
 import { getCollections } from "../db.js";
 import { handleListSubmissions, handleGetSubmission } from "./submissions.js";
 import { handleSubmit } from "./submit.js";
-
 const KEY_RE = /^abir_[0-9a-f]{64}$/i;
-
 async function resolveApiKey(rawKey, requiredAction, appName = null) {
   if (!KEY_RE.test(rawKey)) {
     return { error: true, status: 404, message: "API key not found." };
   }
-
   const { apikeys, users } = getCollections();
   const keyDoc = await apikeys.findOne({ key: rawKey });
-
   if (!keyDoc) {
     return { error: true, status: 404, message: "API key not found." };
   }
-
   if (keyDoc.revokedAt) {
     return { error: true, status: 401, message: "API key has been revoked." };
   }
-
   if (!keyDoc.permissions.actions.includes(requiredAction)) {
     return { error: true, status: 403, message: `This API key does not have '${requiredAction}' permission.` };
   }
-
   if (appName && keyDoc.permissions.apps !== "*") {
     if (!keyDoc.permissions.apps.includes(appName)) {
       return { error: true, status: 403, message: `This API key is not permitted to access app '${appName}'.` };
     }
   }
-
   const owner = await users.findOne({ _id: new ObjectId(keyDoc.userId) });
   if (!owner) {
     return { error: true, status: 401, message: "API key owner not found." };
   }
-
   apikeys.updateOne({ _id: keyDoc._id }, { $set: { lastUsedAt: new Date() } }).catch(() => {});
-
   return {
     error: false,
     keyDoc,
@@ -47,11 +37,9 @@ async function resolveApiKey(rawKey, requiredAction, appName = null) {
     ownerEmail: owner.email,
   };
 }
-
 export async function handleApiGateway(request, rawKey, subPath) {
   const method = request.method;
   const corsHeaders = { "Access-Control-Allow-Origin": "*", Vary: "Origin" };
-
   if (method === "OPTIONS") {
     return new Response(null, {
       status: 204,
@@ -63,24 +51,19 @@ export async function handleApiGateway(request, rawKey, subPath) {
       },
     });
   }
-
   const ip = clientIp(request);
   const rateLimitKey = `apikey:${rawKey.slice(0, 20)}:${ip}`;
   if (!checkRateLimit(null, rateLimitKey, 60, 60)) {
     return jsonResponse({ error: "Rate limit exceeded. Please slow down." }, 429, corsHeaders);
   }
-
   if (subPath === "/apps" && method === "GET") {
     const auth = await resolveApiKey(rawKey, "read");
     if (auth.error) return jsonResponse({ error: auth.message }, auth.status, corsHeaders);
-
     const { apps } = getCollections();
     let query = { ownerId: new ObjectId(auth.ownerUserId) };
-
     if (auth.keyDoc.permissions.apps !== "*") {
       query.appName = { $in: auth.keyDoc.permissions.apps };
     }
-
     const list = await apps.find(query).sort({ createdAt: -1 }).toArray();
     const publicList = list.map((a) => ({
       appName: a.appName,
@@ -90,41 +73,32 @@ export async function handleApiGateway(request, rawKey, subPath) {
       createdAt: a.createdAt,
       updatedAt: a.updatedAt,
     }));
-
     return jsonResponse({ ok: true, apps: publicList }, 200, corsHeaders);
   }
-
   const submissionsListMatch = subPath.match(/^\/apps\/([^/]+)\/submissions$/);
   const submissionItemMatch = subPath.match(/^\/apps\/([^/]+)\/submissions\/([^/]+)$/);
   const submitMatch = subPath.match(/^\/apps\/([^/]+)\/submit$/);
-
   if (submissionsListMatch && method === "GET") {
     const appName = decodeURIComponent(submissionsListMatch[1]);
     const auth = await resolveApiKey(rawKey, "read", appName);
     if (auth.error) return jsonResponse({ error: auth.message }, auth.status, corsHeaders);
-
     const fakeAuth = { userId: auth.ownerUserId, username: auth.ownerUsername, email: auth.ownerEmail };
     return handleListSubmissions(request, fakeAuth, appName, corsHeaders);
   }
-
   if (submissionItemMatch && method === "GET") {
     const appName = decodeURIComponent(submissionItemMatch[1]);
     const submissionId = decodeURIComponent(submissionItemMatch[2]);
     const auth = await resolveApiKey(rawKey, "read", appName);
     if (auth.error) return jsonResponse({ error: auth.message }, auth.status, corsHeaders);
-
     const fakeAuth = { userId: auth.ownerUserId, username: auth.ownerUsername, email: auth.ownerEmail };
     return handleGetSubmission(request, fakeAuth, appName, submissionId, corsHeaders);
   }
-
   if (submitMatch && method === "POST") {
     const appName = decodeURIComponent(submitMatch[1]);
     const auth = await resolveApiKey(rawKey, "submit", appName);
     if (auth.error) return jsonResponse({ error: auth.message }, auth.status, corsHeaders);
-
     return handleSubmit(request, auth.ownerUsername, appName, corsHeaders);
   }
-
   if (
     submissionsListMatch ||
     submissionItemMatch ||
@@ -133,7 +107,6 @@ export async function handleApiGateway(request, rawKey, subPath) {
   ) {
     return jsonResponse({ error: "Method not allowed." }, 405, corsHeaders);
   }
-
   return jsonResponse(
     {
       ok: false,

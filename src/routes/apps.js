@@ -4,18 +4,15 @@ import { getCollections } from "../db.js";
 import { encryptSecret, decryptSecret } from "../crypto-utils.js";
 import { FIELD_TYPES, SLUG_RE, DEFAULT_MAX_FIELD_LENGTH, DEFAULT_MAX_FILE_BYTES, DEFAULT_MAX_FORM_FIELDS, sanitizeText } from "../validation.js";
 import { SHOPIFY_DOMAIN_RE } from "../shopify.js";
-
 const RESERVED_APP_NAMES = new Set([
   "files", "api", "health", "admin", "www", "app", "static", "assets",
   "login", "register", "dashboard", "apps", "submissions", "guide", "docs", "settings", "logout", "home"
 ]);
-
 function sanitizeFields(rawFields) {
   if (!Array.isArray(rawFields) || rawFields.length === 0) {
     return { error: "At least one field is required." };
   }
   if (rawFields.length > 60) return { error: "Too many fields (max 60)." };
-
   const seenKeys = new Set();
   const fields = [];
   for (const raw of rawFields) {
@@ -25,7 +22,6 @@ function sanitizeFields(rawFields) {
     }
     if (seenKeys.has(key)) return { error: `Duplicate field key: ${key}` };
     seenKeys.add(key);
-
     const validWidths = ["100", "50", "33"];
     const type = FIELD_TYPES.includes(raw?.type) ? raw.type : "text";
     const field = {
@@ -55,7 +51,6 @@ function sanitizeFields(rawFields) {
   }
   return { fields };
 }
-
 async function sanitizeSettings(rawSettings = {}, existingSettings = {}) {
   const settings = {
     appTitle: typeof rawSettings.appTitle === "string" ? sanitizeText(rawSettings.appTitle).slice(0, 200) : "",
@@ -72,14 +67,12 @@ async function sanitizeSettings(rawSettings = {}, existingSettings = {}) {
     turnstile: { enabled: false, secretKeyEnc: "" },
     shopify: { enabled: false },
   };
-
   if (rawSettings.turnstile?.enabled) {
     const secretKey = typeof rawSettings.turnstile.secretKey === "string" ? rawSettings.turnstile.secretKey.trim() : "";
     settings.turnstile.enabled = true;
     settings.turnstile.secretKeyEnc = secretKey ? await encryptSecret(secretKey) : existingSettings.turnstile?.secretKeyEnc || "";
     if (!settings.turnstile.secretKeyEnc) return { error: "Turnstile secret key is required when Turnstile is enabled." };
   }
-
   if (rawSettings.shopify?.enabled) {
     const storeDomain = typeof rawSettings.shopify.storeDomain === "string" ? rawSettings.shopify.storeDomain.trim() : "";
     if (!SHOPIFY_DOMAIN_RE.test(storeDomain)) return { error: "shopify.storeDomain must look like your-store.myshopify.com" };
@@ -91,7 +84,6 @@ async function sanitizeSettings(rawSettings = {}, existingSettings = {}) {
     const adminAccessToken = typeof rawSettings.shopify.adminAccessToken === "string" ? rawSettings.shopify.adminAccessToken.trim() : "";
     const adminAccessTokenEnc = adminAccessToken ? await encryptSecret(adminAccessToken) : existingSettings.shopify?.adminAccessTokenEnc || "";
     if (!adminAccessTokenEnc) return { error: "shopify.adminAccessToken is required when Shopify sync is enabled." };
-
     const OPERATORS = ["contains", "not_contains", "equals", "not_equals", "not_empty", "always"];
     const sanitizeCondition = (raw) => {
       if (!raw || typeof raw !== "object") return null;
@@ -101,7 +93,6 @@ async function sanitizeSettings(rawSettings = {}, existingSettings = {}) {
         value: typeof raw.value === "string" ? raw.value.trim().slice(0, 200) : "",
       };
     };
-
     const sanitizeWrites = (rawWrites) => {
       if (!Array.isArray(rawWrites)) return [];
       return rawWrites.slice(0, 10).map((w) => {
@@ -126,7 +117,6 @@ async function sanitizeSettings(rawSettings = {}, existingSettings = {}) {
         };
       }).filter(Boolean);
     };
-
     settings.shopify = {
       enabled: true,
       storeDomain,
@@ -138,10 +128,8 @@ async function sanitizeSettings(rawSettings = {}, existingSettings = {}) {
       writes: sanitizeWrites(rawSettings.shopify.writes),
     };
   }
-
   return { settings };
 }
-
 async function toPublicAppView(app) {
   return {
     appName: app.appName,
@@ -183,13 +171,11 @@ async function toPublicAppView(app) {
     updatedAt: app.updatedAt,
   };
 }
-
 export async function handleListApps(request, auth, corsHeaders) {
   const { apps } = getCollections();
   const list = await apps.find({ ownerId: new ObjectId(auth.userId) }).sort({ createdAt: -1 }).toArray();
   return jsonResponse({ ok: true, apps: await Promise.all(list.map(toPublicAppView)) }, 200, corsHeaders);
 }
-
 export async function handleCreateApp(request, auth, corsHeaders) {
   let body;
   try {
@@ -197,26 +183,20 @@ export async function handleCreateApp(request, auth, corsHeaders) {
   } catch {
     return jsonResponse({ error: "Invalid JSON body." }, 400, corsHeaders);
   }
-
   const appName = typeof body.appName === "string" ? body.appName.trim().toLowerCase() : "";
   const turnstileToken = typeof body.turnstileToken === "string" ? body.turnstileToken : "";
-
   if (process.env.PLATFORM_TURNSTILE_SECRET_KEY) {
     const ip = request.headers.get("X-Forwarded-For")?.split(",")[0].trim() || request.headers.get("X-Real-IP") || "unknown";
     const isValid = await verifyPlatformTurnstile(turnstileToken, ip);
     if (!isValid) return jsonResponse({ error: "Turnstile verification failed. Please try again." }, 403, corsHeaders);
   }
-
   if (!SLUG_RE.test(appName) || RESERVED_APP_NAMES.has(appName)) {
     return jsonResponse({ error: "appName must be 1-50 chars: lowercase letters, numbers, hyphens." }, 400, corsHeaders);
   }
-
   const fieldResult = sanitizeFields(body.fields);
   if (fieldResult.error) return jsonResponse({ error: fieldResult.error }, 400, corsHeaders);
-
   const settingsResult = await sanitizeSettings(body.settings || {});
   if (settingsResult.error) return jsonResponse({ error: settingsResult.error }, 400, corsHeaders);
-
   const { apps } = getCollections();
   const now = new Date();
   const doc = {
@@ -228,38 +208,31 @@ export async function handleCreateApp(request, auth, corsHeaders) {
     createdAt: now,
     updatedAt: now,
   };
-
   try {
     await apps.insertOne(doc);
   } catch (e) {
     if (e?.code === 11000) return jsonResponse({ error: "You already have an app with that name." }, 409, corsHeaders);
     throw e;
   }
-
   return jsonResponse({ ok: true, app: await toPublicAppView(doc) }, 201, corsHeaders);
 }
-
 export async function handleGetApp(request, auth, appName, corsHeaders) {
   const { apps } = getCollections();
   const app = await apps.findOne({ ownerId: new ObjectId(auth.userId), appName });
   if (!app) return jsonResponse({ error: "App not found." }, 404, corsHeaders);
   return jsonResponse({ ok: true, app: await toPublicAppView(app) }, 200, corsHeaders);
 }
-
 export async function handleUpdateApp(request, auth, appName, corsHeaders) {
   const { apps } = getCollections();
   const existing = await apps.findOne({ ownerId: new ObjectId(auth.userId), appName });
   if (!existing) return jsonResponse({ error: "App not found." }, 404, corsHeaders);
-
   let body;
   try {
     body = await request.json();
   } catch {
     return jsonResponse({ error: "Invalid JSON body." }, 400, corsHeaders);
   }
-
   const update = { updatedAt: new Date() };
-
   if (body.newAppName !== undefined) {
     const newAppName = typeof body.newAppName === "string" ? body.newAppName.trim().toLowerCase() : "";
     if (!SLUG_RE.test(newAppName) || RESERVED_APP_NAMES.has(newAppName)) {
@@ -271,31 +244,25 @@ export async function handleUpdateApp(request, auth, appName, corsHeaders) {
       update.appName = newAppName;
     }
   }
-
   if (body.fields !== undefined) {
     const fieldResult = sanitizeFields(body.fields);
     if (fieldResult.error) return jsonResponse({ error: fieldResult.error }, 400, corsHeaders);
     update.fields = fieldResult.fields;
   }
-
   if (body.settings !== undefined) {
     const settingsResult = await sanitizeSettings(body.settings, existing.settings);
     if (settingsResult.error) return jsonResponse({ error: settingsResult.error }, 400, corsHeaders);
     update.settings = settingsResult.settings;
   }
-
   await apps.updateOne({ _id: existing._id }, { $set: update });
   const updated = await apps.findOne({ _id: existing._id });
   return jsonResponse({ ok: true, app: await toPublicAppView(updated) }, 200, corsHeaders);
 }
-
 export async function handleDeleteApp(request, auth, appName, corsHeaders) {
   const { apps, submissions } = getCollections();
   const existing = await apps.findOne({ ownerId: new ObjectId(auth.userId), appName });
   if (!existing) return jsonResponse({ error: "App not found." }, 404, corsHeaders);
-
   await apps.deleteOne({ _id: existing._id });
   await submissions.deleteMany({ appId: existing._id });
-
   return jsonResponse({ ok: true }, 200, corsHeaders);
 }

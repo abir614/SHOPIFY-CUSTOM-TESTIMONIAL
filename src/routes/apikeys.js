@@ -2,19 +2,15 @@ import { ObjectId } from "mongodb";
 import { jsonResponse } from "../security.js";
 import { getCollections } from "../db.js";
 import { randomBytes } from "node:crypto";
-
 const KEY_PREFIX = "abir_";
 const KEY_BYTES = 32; 
-
 function generateApiKey() {
   return KEY_PREFIX + randomBytes(KEY_BYTES).toString("hex");
 }
-
 function sanitizePermissions(raw = {}) {
   const actions = Array.isArray(raw.actions)
     ? raw.actions.filter((a) => ["read", "submit"].includes(a))
     : ["read", "submit"];
-
   let apps;
   if (raw.apps === "*" || !Array.isArray(raw.apps) || raw.apps.length === 0) {
     apps = "*";
@@ -24,10 +20,8 @@ function sanitizePermissions(raw = {}) {
       .filter(Boolean)
       .slice(0, 50);
   }
-
   return { actions, apps };
 }
-
 /** Convert a DB document to a safe public view (never exposes the raw key after creation) */
 function toPublicKeyView(doc, includeKey = false) {
   return {
@@ -40,7 +34,6 @@ function toPublicKeyView(doc, includeKey = false) {
     revokedAt: doc.revokedAt || null,
   };
 }
-
 /** GET /api/apikeys — list all keys for the authenticated user */
 export async function handleListApiKeys(request, auth, corsHeaders) {
   const { apikeys } = getCollections();
@@ -50,7 +43,6 @@ export async function handleListApiKeys(request, auth, corsHeaders) {
     .toArray();
   return jsonResponse({ ok: true, apikeys: keys.map((k) => toPublicKeyView(k)) }, 200, corsHeaders);
 }
-
 /** POST /api/apikeys — create a new key */
 export async function handleCreateApiKey(request, auth, corsHeaders) {
   let body;
@@ -59,19 +51,15 @@ export async function handleCreateApiKey(request, auth, corsHeaders) {
   } catch {
     return jsonResponse({ error: "Invalid JSON body." }, 400, corsHeaders);
   }
-
   const name =
     typeof body.name === "string" && body.name.trim()
       ? body.name.trim().slice(0, 100)
       : "Unnamed Key";
-
   const permissions = sanitizePermissions(body.permissions);
   if (permissions.actions.length === 0) {
     return jsonResponse({ error: "At least one action (read, submit) must be selected." }, 400, corsHeaders);
   }
-
   const { apikeys } = getCollections();
-
   const existingCount = await apikeys.countDocuments({
     userId: new ObjectId(auth.userId),
     revokedAt: null,
@@ -79,7 +67,6 @@ export async function handleCreateApiKey(request, auth, corsHeaders) {
   if (existingCount >= 20) {
     return jsonResponse({ error: "Maximum of 20 active API keys allowed per user." }, 429, corsHeaders);
   }
-
   const rawKey = generateApiKey();
   const now = new Date();
   const doc = {
@@ -91,12 +78,9 @@ export async function handleCreateApiKey(request, auth, corsHeaders) {
     createdAt: now,
     revokedAt: null,
   };
-
   await apikeys.insertOne(doc);
-
   return jsonResponse({ ok: true, apikey: toPublicKeyView(doc, true) }, 201, corsHeaders);
 }
-
 export async function handleDeleteApiKey(request, auth, keyId, corsHeaders) {
   let objectId;
   try {
@@ -104,16 +88,13 @@ export async function handleDeleteApiKey(request, auth, keyId, corsHeaders) {
   } catch {
     return jsonResponse({ error: "Invalid key ID." }, 400, corsHeaders);
   }
-
   const { apikeys } = getCollections();
   const result = await apikeys.updateOne(
     { _id: objectId, userId: new ObjectId(auth.userId), revokedAt: null },
     { $set: { revokedAt: new Date() } }
   );
-
   if (result.matchedCount === 0) {
     return jsonResponse({ error: "API key not found or already revoked." }, 404, corsHeaders);
   }
-
   return jsonResponse({ ok: true }, 200, corsHeaders);
 }
