@@ -105,11 +105,12 @@ function updateAuthUI() {
    <a class="nav-link" href="#home">Home</a>
    <a class="nav-link" href="#dashboard">My Apps</a>
    <a class="nav-link" href="#guide">Shopify Metaobjects</a>
+   <button class="btn btn-secondary btn-sm mobile-only" onclick="logout()" style="width: 80%;">Sign Out</button>
   \`;
   navAuth.innerHTML = \`
    <div style="display:flex; align-items:center; gap: 1rem;">
-    <span style="font-size: 0.88rem; color: var(--text-secondary);">\${escapeHtml(state.user.username)}</span>
-    <button class="btn btn-secondary btn-sm" onclick="logout()">Sign Out</button>
+    <span class="desktop-only" style="font-size: 0.88rem; color: var(--text-secondary);">\${escapeHtml(state.user.username)}</span>
+    <button class="btn btn-secondary btn-sm desktop-only" onclick="logout()">Sign Out</button>
     <button class="btn btn-secondary btn-sm" style="display:flex; align-items:center;" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme">🌙 Dark</button>
    </div>
   \`;
@@ -117,11 +118,15 @@ function updateAuthUI() {
   navLinks.innerHTML = \`
    <a class="nav-link" href="#home">Home</a>
    <a class="nav-link" href="#guide">Shopify Metaobjects</a>
+   <button class="btn btn-secondary btn-sm mobile-only" onclick="openLoginModal()" style="width: 80%;">Sign In</button>
+   <button class="btn btn-primary btn-sm mobile-only" onclick="openRegisterModal()" style="width: 80%;">Get Started</button>
   \`;
   navAuth.innerHTML = \`
-   <button class="btn btn-secondary btn-sm" onclick="openLoginModal()">Sign In</button>
-   <button class="btn btn-primary btn-sm" onclick="openRegisterModal()">Get Started</button>
-   <button class="btn btn-secondary btn-sm" style="display:flex; align-items:center;" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme">🌙 Dark</button>
+   <div style="display:flex; align-items:center; gap: 0.5rem;">
+    <button class="btn btn-secondary btn-sm desktop-only" onclick="openLoginModal()">Sign In</button>
+    <button class="btn btn-primary btn-sm desktop-only" onclick="openRegisterModal()">Get Started</button>
+    <button class="btn btn-secondary btn-sm" style="display:flex; align-items:center;" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme">🌙 Dark</button>
+   </div>
   \`;
  }
  const theme = document.documentElement.getAttribute('data-theme') || 'dark';
@@ -291,7 +296,7 @@ async function renderDashboardView(container) {
    <div class="apikey-section-header">
     <div>
      <h2 style="font-size:1.35rem; margin:0;">API Keys</h2>
-     <p style="margin:0.25rem 0 0; color:var(--text-secondary); font-size:0.9rem;">Create programmatic access keys. Requests go to <code style="color:#818cf8">/api/{API_KEY}/apps</code> and <code style="color:#818cf8">/api/{API_KEY}/apps/{app}/submissions</code>.</p>
+     <p style="margin:0.25rem 0 0; color:var(--text-secondary); font-size:0.9rem;">Create programmatic access keys. Requests go to <code style="color:#818cf8">\${window.location.origin}/api/{API_KEY}/apps</code> and <code style="color:#818cf8">\${window.location.origin}/api/{API_KEY}/apps/{app}/submissions</code>.</p>
     </div>
     <button class="btn btn-primary" onclick="openCreateApiKeyModal()">
      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:0.3rem"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -349,17 +354,15 @@ function renderAppsGrid(appsList) {
   const turnstileConfigured = app.settings?.turnstile?.enabled;
   const fieldsCount = Array.isArray(app.fields) ? app.fields.length : 0;
   const originCount = Array.isArray(app.settings?.allowedOrigins) ? app.settings.allowedOrigins.length : 0;
-  const fullSubmitPath = '/api/' + encodeURIComponent(state.user.username) + '/' + encodeURIComponent(app.appName) + '/';
+  const fullSubmitPath = window.location.origin + '/api/' + encodeURIComponent(state.user.username) + '/' + encodeURIComponent(app.appName) + '/';
   return \`
    <div class="app-card">
     <div>
-     <div class="app-card-header">
-      <div>
-       <h3 class="app-card-title">\${escapeHtml(app.appName)}</h3>
-       <span class="app-card-slug">\${escapeHtml(fullSubmitPath)}</span>
-      </div>
+     <div class="app-card-header" style="align-items: center; margin-bottom: 0.5rem;">
+      <h3 class="app-card-title" style="margin-bottom: 0;">\${escapeHtml(app.appName)}</h3>
       <button class="btn btn-danger btn-sm" onclick="deleteApp('\${escapeHtml(app.appName)}')" title="Delete App" style="display:flex;align-items:center;gap:0.3rem;flex-shrink:0;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg> Delete</button>
      </div>
+     <div class="app-card-slug">\${escapeHtml(fullSubmitPath)}</div>
      <div class="app-card-meta" style="margin-top: 1rem;">
       <span class="badge" style="background: rgba(99,102,241,0.15); color:#818cf8;">\${fieldsCount} Fields</span>
       \${shopifyConfigured ? \`
@@ -1873,13 +1876,11 @@ function renderBundlesGrid(bundles) {
  container.innerHTML = bundles.map(b => {
   return \`
    <div class="app-card" style="border-left: 3px solid #f59e0b;">
-    <div class="app-card-header">
-     <div>
-      <h3 class="app-card-title">\${escapeHtml(b.displayName || b.bundleName)}</h3>
-      <span class="app-card-slug">\${escapeHtml('/api/' + state.user.username + '/' + b.bundleName)}</span>
-     </div>
+    <div class="app-card-header" style="align-items: center; margin-bottom: 0.5rem;">
+     <h3 class="app-card-title" style="margin-bottom: 0;">\${escapeHtml(b.displayName || b.bundleName)}</h3>
      <button class="btn btn-danger btn-sm" onclick="deleteBundle('\${escapeHtml(b.bundleName)}')">Delete</button>
     </div>
+    <div class="app-card-slug">\${escapeHtml(window.location.origin + '/api/' + state.user.username + '/' + b.bundleName)}</div>
     <div class="app-card-meta" style="margin-top: 1rem; color:var(--text-secondary); font-size:0.85rem;">
      Linked Apps: <strong style="color:var(--text-primary);">\${(b.linkedApps||[]).join(', ')}</strong>
     </div>
@@ -1975,4 +1976,20 @@ window.deleteBundle = async function(bundleName) {
   showToast('Network error deleting bundle.', 'error');
  }
 }
+
+// Mobile Menu Toggle Logic
+window.toggleMobileMenu = function() {
+  const nav = document.getElementById('nav-links');
+  if (nav) {
+    nav.classList.toggle('open');
+  }
+};
+
+// Auto-close mobile menu when clicking a link
+document.addEventListener('click', (e) => {
+  if (e.target.closest('.nav-link')) {
+    const nav = document.getElementById('nav-links');
+    if (nav) nav.classList.remove('open');
+  }
+});
 `;

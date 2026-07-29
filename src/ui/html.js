@@ -39,8 +39,13 @@ export function renderUI(request) {
    <a class="nav-link active" href="#home">Home</a>
    <a class="nav-link" href="#guide">Shopify Metaobjects</a>
   </nav>
-  <div class="nav-actions" id="nav-auth-actions">
-   <!-- Dynamically populated by JS based on user session -->
+  <div style="display: flex; align-items: center; gap: 0.5rem;">
+   <div class="nav-actions" id="nav-auth-actions">
+    <!-- Dynamically populated by JS based on user session -->
+   </div>
+   <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Toggle Menu" onclick="toggleMobileMenu()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+   </button>
   </div>
  </header>
  <!-- Main View Router Container -->
@@ -122,13 +127,15 @@ export function renderUI(request) {
    </div>
    <div class="modal-body">
     <!-- Quick Start Template Presets Bar -->
-    <div style="background:rgba(129,140,248,0.08); border:1px solid rgba(129,140,248,0.25); border-radius:var(--radius-md); padding:0.75rem 1rem; margin-bottom:1.2rem; display:flex; flex-wrap:wrap; align-items:center; gap:0.5rem;">
-     <span style="font-size:0.8rem; font-weight:700; color:var(--accent-color); text-transform:uppercase; letter-spacing:0.05em; margin-right:0.3rem;">Presets:</span>
-     <button type="button" class="btn btn-secondary btn-sm" onclick="applyTemplatePreset('contact')">Contact</button>
-     <button type="button" class="btn btn-secondary btn-sm" onclick="applyTemplatePreset('shopify-story')">Shopify Product Story</button>
-     <button type="button" class="btn btn-secondary btn-sm" onclick="applyTemplatePreset('survey')"> Survey</button>
-     <button type="button" class="btn btn-secondary btn-sm" onclick="applyTemplatePreset('event')"> Event</button>
-     <button type="button" class="btn btn-secondary btn-sm" onclick="applyTemplatePreset('blank')" style="border-color:var(--border-color); color:var(--text-secondary);"> Blank</button>
+    <div style="background:rgba(129,140,248,0.08); border:1px solid rgba(129,140,248,0.25); border-radius:var(--radius-md); padding:1rem; margin-bottom:1.2rem;">
+     <div style="font-size:0.75rem; font-weight:700; color:var(--accent-primary); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.6rem;">Template Presets</div>
+     <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+       <button type="button" class="btn btn-secondary btn-sm" onclick="applyTemplatePreset('contact')">Contact</button>
+       <button type="button" class="btn btn-secondary btn-sm" onclick="applyTemplatePreset('shopify-story')">Shopify Product Story</button>
+       <button type="button" class="btn btn-secondary btn-sm" onclick="applyTemplatePreset('survey')"> Survey</button>
+       <button type="button" class="btn btn-secondary btn-sm" onclick="applyTemplatePreset('event')"> Event</button>
+       <button type="button" class="btn btn-secondary btn-sm" onclick="applyTemplatePreset('blank')" style="border-color:var(--border-color); color:var(--text-secondary);"> Blank</button>
+     </div>
     </div>
     <!-- Tabs Header -->
     <div class="tabs-header">
