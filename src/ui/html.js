@@ -1,7 +1,6 @@
 import { STYLES } from "./styles.js";
 import { SCRIPTS } from "./scripts.js";
 import { SECURITY_HEADERS } from "../security.js";
-
 export function renderUI(request) {
   const siteKey = process.env.PLATFORM_TURNSTILE_SITE_KEY || "1x00000000000000000000AA";
   const html = `<!DOCTYPE html>
@@ -27,7 +26,6 @@ export function renderUI(request) {
   <div class="bg-glow-circle bg-glow-2"></div>
   <div class="bg-glow-circle bg-glow-3"></div>
  </div>
-
  <!-- Sticky Top Navigation -->
  <header class="app-header">
   <a class="logo-group" href="#home">
@@ -37,27 +35,21 @@ export function renderUI(request) {
    </div>
    <span class="logo-badge">Node.js App</span>
   </a>
-
   <nav class="nav-links" id="nav-links">
    <a class="nav-link active" href="#home">Home</a>
    <a class="nav-link" href="#guide">Shopify Metaobjects</a>
   </nav>
-
   <div class="nav-actions" id="nav-auth-actions">
    <!-- Dynamically populated by JS based on user session -->
   </div>
  </header>
-
  <!-- Main View Router Container -->
  <main class="main-content" id="main-view">
   <!-- Rendered dynamically by SPA client router -->
  </main>
-
  <!-- Toast Notification System -->
  <div id="toast-container" class="toast-container"></div>
-
  <!-- MODALS SECTION -->
-
  <!-- 1. Login Modal -->
  <div id="login-modal" class="modal-overlay">
   <div class="modal-container" style="max-width: 440px;">
@@ -87,7 +79,6 @@ export function renderUI(request) {
    </form>
   </div>
  </div>
-
  <!-- 2. Register Modal -->
  <div id="register-modal" class="modal-overlay">
   <div class="modal-container" style="max-width: 480px;">
@@ -122,7 +113,6 @@ export function renderUI(request) {
    </form>
   </div>
  </div>
-
  <!-- 3. App Creator / Editor Modal (Multi-Tab) -->
  <div id="app-editor-modal" class="modal-overlay">
   <div class="modal-container" style="max-width: 820px;">
@@ -140,7 +130,6 @@ export function renderUI(request) {
      <button type="button" class="btn btn-secondary btn-sm" onclick="applyTemplatePreset('event')"> Event</button>
      <button type="button" class="btn btn-secondary btn-sm" onclick="applyTemplatePreset('blank')" style="border-color:var(--border-color); color:var(--text-secondary);"> Blank</button>
     </div>
-
     <!-- Tabs Header -->
     <div class="tabs-header">
      <button type="button" class="tab-btn app-tab-btn active" data-tab="general" onclick="switchAppModalTab('general')"> General & UI</button>
@@ -148,7 +137,6 @@ export function renderUI(request) {
      <button type="button" class="tab-btn app-tab-btn" data-tab="shopify" onclick="switchAppModalTab('shopify')"> Shopify Sync</button>
      <button type="button" class="tab-btn app-tab-btn" data-tab="security" onclick="switchAppModalTab('security')">Security & Limits</button>
     </div>
-
     <!-- Tab 1: General & UI Theme Customization -->
     <div id="tab-pane-general" class="app-tab-pane">
      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
@@ -163,13 +151,11 @@ export function renderUI(request) {
        <span class="form-hint">Shown at the top of your public form & emails</span>
       </div>
      </div>
-
      <div class="form-group">
       <label class="form-label">Form Description / Instructions</label>
       <input type="text" id="app-description-input" class="form-input" placeholder="e.g. Please fill out your details below. We value your privacy." />
       <span class="form-hint">Subtitle explaining what this form is for</span>
      </div>
-
      <div style="display:grid; grid-template-columns: 1.2fr 1fr; gap:1rem;">
       <div class="form-group">
        <label class="form-label">Brand Accent Color (Theme)</label>
@@ -193,7 +179,6 @@ export function renderUI(request) {
        <span class="form-hint">Custom text for primary submit button</span>
       </div>
      </div>
-
      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
       <div class="form-group">
        <label class="form-label">Success Message After Submit</label>
@@ -206,14 +191,12 @@ export function renderUI(request) {
        <span class="form-hint">Optional destination to redirect users after submitting</span>
       </div>
      </div>
-
      <div class="form-group">
       <label class="form-label">Webhook URL (Optional Real-Time Notification)</label>
       <input type="text" id="app-webhook-url-input" class="form-input" placeholder="e.g. https://hooks.zapier.com/hooks/catch/..." />
       <span class="form-hint">We POST JSON submission data to this webhook URL immediately on every new submission</span>
      </div>
     </div>
-
     <!-- Tab 2: Fields Schema Builder -->
     <div id="tab-pane-fields" class="app-tab-pane" style="display:none;">
      <div style="margin-top: 0.2rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 0.8rem 1rem; border: 1px solid var(--border-color); border-radius: var(--radius-md);">
@@ -223,10 +206,8 @@ export function renderUI(request) {
       </div>
       <button type="button" class="btn btn-primary btn-sm" onclick="addFieldRow()" style="white-space: nowrap;">+ Add New Field</button>
      </div>
-
      <div id="fields-builder-list" style="display: flex; flex-direction: column; gap: 1.1rem;"></div>
     </div>
-
     <!-- Tab 2: Shopify Metaobjects Configurator -->
     <div id="tab-pane-shopify" class="app-tab-pane" style="display:none;">
      <div class="guide-banner" style="margin-bottom:1.5rem;">
@@ -236,7 +217,6 @@ export function renderUI(request) {
       </div>
       <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.hash = '#guide'; closeModal('app-editor-modal');">Setup Guide</button>
      </div>
-
      <label class="form-checkbox-group" style="margin-bottom: 1.5rem; padding: 0.8rem; background:rgba(255,255,255,0.03); border-radius:var(--radius-md); border:1px solid var(--border-color);">
       <input type="checkbox" id="shopify-enabled" class="form-checkbox" onchange="updateShopifyTabVisibility()" />
       <div>
@@ -244,7 +224,6 @@ export function renderUI(request) {
        <div class="form-hint" style="margin:0;">Turn this on to sync submissions to your Shopify Admin API.</div>
       </div>
      </label>
-
      <div id="shopify-config-fields" style="opacity:0.4; pointer-events:none; transition:opacity 0.3s ease;">
       <div style="display:grid; grid-template-columns: 1.5fr 1fr; gap:1rem;">
        <div class="form-group">
@@ -256,13 +235,11 @@ export function renderUI(request) {
         <input type="text" id="shopify-api-version" class="form-input" value="2026-04" placeholder="2026-04" />
        </div>
       </div>
-
       <div class="form-group">
        <label class="form-label">Shopify Admin API Access Token (<code style="color:#818cf8">shpat_...</code>)</label>
        <input type="password" id="shopify-admin-token" class="form-input" placeholder="Leave blank to keep existing encrypted token unchanged" />
        <span class="form-hint">Token requires <code style="color:#818cf8">write_metaobjects</code> and <code style="color:#818cf8">write_files</code> scopes. Stored encrypted with AES-GCM at rest.</span>
       </div>
-
       <div style="display:grid; grid-template-columns: 1.5fr 1fr; gap:1rem;">
        <div class="form-group">
         <label class="form-label">Metaobject Type Handle</label>
@@ -277,7 +254,6 @@ export function renderUI(request) {
         <span class="form-hint">Which file field uploads to Shopify Files</span>
        </div>
       </div>
-
       <div style="margin-top:2rem; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.1);">
        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
         <div>
@@ -288,7 +264,6 @@ export function renderUI(request) {
        </div>
        <div id="shopify-writes-list" style="display:flex; flex-direction:column; gap:1rem;"></div>
       </div>
-
       <div style="margin-top:1.5rem;">
        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
         <label class="form-label" style="margin:0;">Custom Field Mapping (Optional)</label>
@@ -301,7 +276,6 @@ export function renderUI(request) {
       </div>
      </div>
     </div>
-
     <!-- Tab 3: Security & Rate Limits -->
     <div id="tab-pane-security" class="app-tab-pane" style="display:none;">
      <div class="form-group">
@@ -309,7 +283,6 @@ export function renderUI(request) {
       <input type="text" id="setting-origins" class="form-input" placeholder="e.g. * or https://mystore.com, https://example.org" value="*" />
       <span class="form-hint">Comma-separated list of web origins allowed to call your public POST endpoint</span>
      </div>
-
      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
       <div class="form-group">
        <label class="form-label">Max File Size (MB)</label>
@@ -320,13 +293,11 @@ export function renderUI(request) {
        <input type="number" id="setting-max-fields" class="form-input" min="5" max="100" value="40" />
       </div>
      </div>
-
      <div class="form-group">
       <label class="form-label">Honeypot Field Name</label>
       <input type="text" id="setting-honeypot" class="form-input" value="website" />
       <span class="form-hint">Bots fill every field—if this hidden field is filled, the submission is silently dropped.</span>
      </div>
-
      <div style="margin-top: 1.5rem; padding: 1.2rem; background:rgba(255,255,255,0.03); border-radius:var(--radius-md); border:1px solid var(--border-color);">
       <label class="form-checkbox-group" style="margin-bottom:0.75rem;">
        <input type="checkbox" id="setting-turnstile-enabled" class="form-checkbox" />
@@ -349,7 +320,6 @@ export function renderUI(request) {
     </div>
   </div>
  </div>
-
  <!-- 4. API Hub & Code Snippets Modal -->
  <div id="api-hub-modal" class="modal-overlay">
   <div class="modal-container" style="max-width: 800px;">
@@ -365,7 +335,6 @@ export function renderUI(request) {
       <button class="btn btn-secondary" onclick="copyText('hub-submit-url', this)">Copy URL</button>
      </div>
     </div>
-
     <div style="margin-top: 1.5rem;">
      <h4 style="margin-bottom:0.75rem;">1. Ready-to-use HTML &lt;form&gt; Snippet</h4>
      <div style="position:relative;">
@@ -373,7 +342,6 @@ export function renderUI(request) {
       <pre class="code-box" id="snippet-html"></pre>
      </div>
     </div>
-
     <div style="margin-top: 1.5rem;">
      <h4 style="margin-bottom:0.75rem;">2. Vanilla JavaScript (fetch) Async Upload</h4>
      <div style="position:relative;">
@@ -381,7 +349,6 @@ export function renderUI(request) {
       <pre class="code-box" id="snippet-js"></pre>
      </div>
     </div>
-
     <div style="margin-top: 1.5rem;">
      <h4 style="margin-bottom:0.75rem;">3. cURL CLI Test Command</h4>
      <div style="position:relative;">
@@ -395,19 +362,16 @@ export function renderUI(request) {
    </div>
   </div>
  </div>
-
   <!-- 5. Submissions Viewer Modal -->
   <div id="submissions-modal" class="modal-overlay">
    <div class="modal-container" style="max-width: 1000px;">
-    <div class="modal-header">
+    <div class="modal-header" style="justify-content: space-between;">
      <h3 class="modal-title" id="submissions-modal-title">Collected Form Submissions</h3>
-     <button class="modal-close" onclick="closeModal('submissions-modal')"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+     <div style="display:flex; gap:0.5rem; align-items:center;">
+      <button class="btn btn-secondary btn-sm" onclick="exportSubmissionsCsv()">Export CSV</button>
+      <button class="modal-close" onclick="closeModal('submissions-modal')"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+     </div>
     </div>
-    <div style="display:flex; gap:0.5rem; align-items:center;">
-     <button class="btn btn-secondary btn-sm" onclick="exportSubmissionsCsv()">Export CSV</button>
-     <button class="modal-close" onclick="closeModal('submissions-modal')"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
-    </div>
-   </div>
    <div class="modal-body" style="padding: 1rem;">
     <div class="table-container">
      <table class="data-table">
@@ -432,7 +396,6 @@ export function renderUI(request) {
    </div>
   </div>
  </div>
-
  <!-- 6. Bundle Editor Modal -->
  <div id="bundle-editor-modal" class="modal-overlay">
   <div class="modal-container" style="max-width: 720px;">
@@ -452,7 +415,6 @@ export function renderUI(request) {
       <input type="text" id="bundle-display-input" class="form-input" placeholder="e.g. Mega Promo" />
      </div>
     </div>
-
     <div class="form-group" style="margin-bottom:1.5rem;">
      <label class="form-label">Linked Apps <span style="color:var(--danger-color)">*</span></label>
      <select id="bundle-apps-select" class="form-select" multiple size="4" style="height:auto;">
@@ -460,7 +422,6 @@ export function renderUI(request) {
      </select>
      <span class="form-hint">Hold Ctrl/Cmd to select multiple apps. Submitting to this bundle will execute all linked apps simultaneously.</span>
     </div>
-
     <h4 style="margin-bottom:0.75rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.5rem;">Bundle Overrides (Optional)</h4>
     <div class="form-group">
      <label class="form-label">Success Message</label>
@@ -481,7 +442,6 @@ export function renderUI(request) {
    </div>
   </div>
  </div>
-
  <!-- 6. Inspect Submission Modal (Shopify Errors / Full JSON) -->
  <div id="inspect-submission-modal" class="modal-overlay">
   <div class="modal-container" style="max-width: 650px;">
@@ -497,7 +457,6 @@ export function renderUI(request) {
    </div>
   </div>
  </div>
-
  <!-- 7. Interactive Live Test Modal -->
  <div id="live-test-modal" class="modal-overlay" style="align-items:flex-start;overflow-y:auto;padding:2rem 1rem;">
   <div class="modal-container" style="max-width: 580px;margin:auto;">
@@ -520,7 +479,6 @@ export function renderUI(request) {
    </form>
   </div>
  </div>
-
  <!-- 8. Create API Key Modal -->
  <div id="apikey-create-modal" class="modal-overlay">
   <div class="modal-container" style="max-width: 520px;">
@@ -530,7 +488,6 @@ export function renderUI(request) {
    </div>
    <div class="modal-body">
     <div id="apikey-create-error" style="display:none; padding:0.75rem; background:var(--danger-bg); color:var(--danger-color); border-radius:var(--radius-sm); font-size:0.85rem; margin-bottom:1rem;"></div>
-
     <!-- Key reveal area (shown after creation) -->
     <div id="apikey-reveal-area" style="display:none;">
      <div class="apikey-reveal-box">
@@ -546,7 +503,6 @@ export function renderUI(request) {
       <button type="button" class="btn btn-secondary" onclick="closeModal('apikey-create-modal'); loadApiKeys();">Done</button>
      </div>
     </div>
-
     <!-- Creation form -->
     <div id="apikey-create-form">
      <div class="form-group">
@@ -554,7 +510,6 @@ export function renderUI(request) {
       <input type="text" id="apikey-name-input" class="form-input" placeholder="e.g. Zapier Integration, Read-only Analytics" maxlength="100" />
       <span class="form-hint">A friendly label to identify this key in your dashboard.</span>
      </div>
-
      <div class="form-group" style="margin-top:1.25rem;">
       <label class="form-label">Permissions</label>
       <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:0.5rem;">
@@ -570,7 +525,6 @@ export function renderUI(request) {
        </label>
       </div>
      </div>
-
      <div class="form-group" style="margin-top:1.25rem;">
       <label class="form-label">App Scope</label>
       <div style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.5rem;">
@@ -584,13 +538,11 @@ export function renderUI(request) {
        </label>
       </div>
      </div>
-
      <div id="apikey-app-list-container" style="display:none; margin-top:0.75rem;">
       <div id="apikey-app-checkboxes" style="display:flex; flex-direction:column; gap:0.4rem; max-height:180px; overflow-y:auto; padding:0.5rem; background:rgba(255,255,255,0.02); border:1px solid var(--border-color); border-radius:var(--radius-sm);">
        <!-- populated by JS -->
       </div>
      </div>
-
      <div class="modal-footer" style="margin-top:1.5rem;">
       <button type="button" class="btn btn-secondary" onclick="closeModal('apikey-create-modal')">Cancel</button>
       <button type="button" class="btn btn-primary" onclick="submitCreateApiKey()">
@@ -602,14 +554,11 @@ export function renderUI(request) {
    </div>
   </div>
  </div>
-
  <script>
   ${SCRIPTS}
  </script>
-
 </body>
 </html>`;
-
  return new Response(html, {
   status: 200,
   headers: {

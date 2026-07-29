@@ -12,7 +12,6 @@ let state = {
  testApp: null,
  hubApp: null
 };
-
 // ── Cloudflare Turnstile Platform CAPTCHA ──────────────────────────────
 const _tsTokens = { login: null, register: null, createApp: null };
 function onLoginTurnstileSuccess(token) { _tsTokens.login = token; }
@@ -26,7 +25,6 @@ function resetTurnstile(id) {
   try { turnstile.reset(document.getElementById(id)); } catch(e) {}
  } else { _tsTokens[id === 'login-turnstile' ? 'login' : id === 'register-turnstile' ? 'register' : 'createApp'] = null; }
 }
-
 // DOM Content Loaded - Init Application
 document.addEventListener('DOMContentLoaded', async () => {
  initTheme();
@@ -36,13 +34,11 @@ document.addEventListener('DOMContentLoaded', async () => {
  handleRoute();
  window.addEventListener('hashchange', handleRoute);
 });
-
 function initTheme() {
  const theme = localStorage.getItem('fh_theme') || 'dark';
  document.documentElement.setAttribute('data-theme', theme);
  updateThemeIcon(theme);
 }
-
 function toggleTheme() {
  const current = document.documentElement.getAttribute('data-theme') || 'dark';
  const next = current === 'dark' ? 'light' : 'dark';
@@ -50,14 +46,12 @@ function toggleTheme() {
  localStorage.setItem('fh_theme', next);
  updateThemeIcon(next);
 }
-
 function updateThemeIcon(theme) {
  const btn = document.getElementById('theme-toggle-btn');
  if (btn) {
   btn.innerHTML = theme === 'dark' ? '☀️ Light' : '🌙 Dark';
  }
 }
-
 function showToast(message, type = 'info') {
  const container = document.getElementById('toast-container');
  if (!container) return;
@@ -65,7 +59,6 @@ function showToast(message, type = 'info') {
  toast.className = 'toast ' + type;
  toast.innerHTML = '<span>' + (type === 'success' ? '' : type === 'error' ? '' : '') + '</span><span>' + escapeHtml(message) + '</span>';
  document.getElementById('toast-container').appendChild(toast);
-
  setTimeout(() => {
   toast.style.opacity = '0';
   toast.style.transform = 'translateX(100%)';
@@ -73,7 +66,6 @@ function showToast(message, type = 'info') {
   setTimeout(() => toast.remove(), 300);
  }, 4000);
 }
-
 function escapeHtml(str) {
  if (!str) return '';
  return String(str)
@@ -81,9 +73,8 @@ function escapeHtml(str) {
   .replace(/</g, '&lt;')
   .replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;')
-  .replace(/'/g, '&039;');
+  .replace(/'/g, '&#39;');
 }
-
 async function verifySession() {
  if (!state.token) {
   updateAuthUI();
@@ -105,12 +96,10 @@ async function verifySession() {
  }
  updateAuthUI();
 }
-
 function updateAuthUI() {
  const navAuth = document.getElementById('nav-auth-actions');
  const navLinks = document.getElementById('nav-links');
  if (!navAuth || !navLinks) return;
-
  if (state.user && state.token) {
   navLinks.innerHTML = \`
    <a class="nav-link" href="#home">Home</a>
@@ -138,7 +127,6 @@ function updateAuthUI() {
  const theme = document.documentElement.getAttribute('data-theme') || 'dark';
  updateThemeIcon(theme);
 }
-
 function logout(notify = true) {
  state.token = null;
  state.user = null;
@@ -148,17 +136,14 @@ function logout(notify = true) {
  if (notify) showToast('Logged out successfully.', 'success');
  window.location.hash = '#home';
 }
-
 function handleRoute() {
  const hash = window.location.hash || '#home';
  const links = document.querySelectorAll('.nav-link');
  links.forEach(l => {
   l.classList.toggle('active', l.getAttribute('href') === hash);
  });
-
  const main = document.getElementById('main-view');
  if (!main) return;
-
  if (hash === '#dashboard') {
   if (!state.token) {
    showToast('Please sign in to access your dashboard.', 'error');
@@ -173,13 +158,11 @@ function handleRoute() {
   renderHomeView(main);
  }
 }
-
 function setupNavigation() {
  document.querySelectorAll('.logo-group').forEach(el => {
   el.addEventListener('click', () => window.location.hash = '#home');
  });
 }
-
 // --- Home Landing Page View ---
 function renderHomeView(container) {
  container.innerHTML = \`
@@ -197,7 +180,6 @@ function renderHomeView(container) {
      <button class="btn btn-secondary" onclick="openLoginModal()">Sign In to Dashboard</button>
     \`}
    </div>
-
    <div class="features-grid">
     <div class="feature-card">
      <h3 class="feature-title">Zero-Latency Edge Routing</h3>
@@ -226,9 +208,7 @@ function renderHomeView(container) {
    </div>
   </section>
  \`;
- 
 }
-
 // --- Shopify Metaobjects Guide View ---
 function renderGuideView(container) {
  container.innerHTML = \`
@@ -240,7 +220,6 @@ function renderGuideView(container) {
     </div>
     <button class="btn btn-primary btn-sm" onclick="window.location.hash = '#dashboard'">Configure Apps</button>
    </div>
-
    <div class="app-card" style="margin-bottom: 1.5rem;">
     <h2 style="font-size: 1.4rem; margin-bottom: 0.75rem;">1. Define Your Metaobject Definition in Shopify</h2>
     <p style="color: var(--text-secondary); margin-bottom: 1rem;">
@@ -252,7 +231,6 @@ function renderGuideView(container) {
      <li><strong>Fields:</strong> Add fields matching your form keys (e.g. <code style="color:#818cf8">name</code>, <code style="color:#818cf8">email</code>, <code style="color:#818cf8">hospital</code>, <code style="color:#818cf8">experience_story</code>, and <code style="color:#818cf8">user_image</code> as a File reference).</li>
     </ul>
    </div>
-
    <div class="app-card" style="margin-bottom: 1.5rem;">
     <h2 style="font-size: 1.4rem; margin-bottom: 0.75rem;">2. Create a Custom App & Generate Admin Token</h2>
     <p style="color: var(--text-secondary); margin-bottom: 1rem;">
@@ -263,7 +241,6 @@ function renderGuideView(container) {
      <li>Install the app and copy your <strong>Admin API access token</strong> (<code style="color:#818cf8">shpat_...</code>).</li>
     </ul>
    </div>
-
    <div class="app-card">
     <h2 style="font-size: 1.4rem; margin-bottom: 0.75rem;">3. Connect in FormHub App Settings</h2>
     <p style="color: var(--text-secondary); margin-bottom: 1rem;">
@@ -272,9 +249,7 @@ function renderGuideView(container) {
    </div>
   </div>
  \`;
- 
 }
-
 // --- Dashboard View (My Apps) ---
 async function renderDashboardView(container) {
  container.innerHTML = \`
@@ -296,7 +271,6 @@ async function renderDashboardView(container) {
     Loading your form applications...
    </div>
   </div>
-
   <!-- App Bundles Section -->
   <div style="margin-top: 3rem;">
    <div class="section-header" style="margin-bottom:1.5rem;">
@@ -312,7 +286,6 @@ async function renderDashboardView(container) {
     </div>
    </div>
   </div>
-
   <!-- API Keys Section -->
   <div style="margin-top: 3rem; max-width: 860px;">
    <div class="apikey-section-header">
@@ -330,12 +303,10 @@ async function renderDashboardView(container) {
    </div>
   </div>
  \`;
- 
  await loadApps();
  await loadBundles();
  await loadApiKeys();
 }
-
 async function loadApps() {
  const container = document.getElementById('apps-grid-container');
  if (!container) return;
@@ -354,13 +325,11 @@ async function loadApps() {
   showToast('Network error loading apps.', 'error');
  }
 }
-
 function filterAppsList(query) {
  const q = (query || '').toLowerCase().trim();
  const filtered = state.apps.filter(a => a.appName.toLowerCase().includes(q));
  renderAppsGrid(filtered);
 }
-
 function renderAppsGrid(appsList) {
  const container = document.getElementById('apps-grid-container');
  if (!container) return;
@@ -375,14 +344,12 @@ function renderAppsGrid(appsList) {
   \`;
   return;
  }
-
  container.innerHTML = appsList.map(app => {
   const shopifyConfigured = app.settings?.shopify?.enabled;
   const turnstileConfigured = app.settings?.turnstile?.enabled;
   const fieldsCount = Array.isArray(app.fields) ? app.fields.length : 0;
   const originCount = Array.isArray(app.settings?.allowedOrigins) ? app.settings.allowedOrigins.length : 0;
   const fullSubmitPath = '/api/' + encodeURIComponent(state.user.username) + '/' + encodeURIComponent(app.appName) + '/';
-
   return \`
    <div class="app-card">
     <div>
@@ -416,11 +383,8 @@ function renderAppsGrid(appsList) {
     </div>
    </div>
   \`;
-
  }).join('');
-
 }
-
 // --- App Manager Modal (Create / Edit) ---
 function openCreateAppModal() {
  state.editingApp = null;
@@ -428,7 +392,6 @@ function openCreateAppModal() {
  document.getElementById('app-modal-title').innerText = 'Create New Form Application';
  document.getElementById('app-name-input').value = '';
  document.getElementById('app-name-input').disabled = false;
- 
  // Default general & theme identity
  document.getElementById('app-title-input').value = 'Share Your Story';
  document.getElementById('app-description-input').value = 'Please fill out your details below. We value your privacy.';
@@ -438,7 +401,6 @@ function openCreateAppModal() {
  document.getElementById('app-success-msg-input').value = 'Thank you! Your submission has been received.';
  document.getElementById('app-redirect-url-input').value = '';
  document.getElementById('app-webhook-url-input').value = '';
-
  // Default sample schema
  renderFieldsBuilder([
   { key: 'name', label: 'Your Name', type: 'text', required: true, maxLength: 100, placeholder: 'e.g. Jane Doe' },
@@ -447,7 +409,6 @@ function openCreateAppModal() {
   { key: 'story', label: 'Your Story', type: 'textarea', required: false, maxLength: 3000, placeholder: 'Write your story here...' },
   { key: 'photo', label: 'Photo Upload', type: 'file', required: false, helpText: 'Optional JPG/PNG image upload' }
  ]);
- 
  // Default settings
  document.getElementById('setting-origins').value = '*';
  document.getElementById('setting-honeypot').value = 'website';
@@ -455,7 +416,6 @@ function openCreateAppModal() {
  document.getElementById('setting-max-fields').value = '40';
  document.getElementById('setting-turnstile-enabled').checked = false;
  document.getElementById('setting-turnstile-secret').value = '';
-
  // Default shopify
  document.getElementById('shopify-enabled').checked = false;
  document.getElementById('shopify-store-domain').value = '';
@@ -466,18 +426,15 @@ function openCreateAppModal() {
  renderShopifyMappingTable({});
  renderShopifyWrites([]);
  updateShopifyTabVisibility();
-
  switchAppModalTab('general');
  openModal('app-editor-modal');
 }
-
 function setThemeSwatch(hex) {
  const col = document.getElementById('app-theme-color');
  const txt = document.getElementById('app-theme-hex');
  if (col) col.value = '#' + hex.replace('#', '');
  if (txt) txt.value = hex.replace('#', '');
 }
-
 function applyTemplatePreset(preset) {
  let slug = '';
  let title = '';
@@ -485,7 +442,6 @@ function applyTemplatePreset(preset) {
  let submitBtn = 'Submit Form';
  let themeHex = '818cf8';
  let fields = [];
-
  if (preset === 'contact') {
   slug = 'contact-form';
   title = 'Contact Us';
@@ -545,19 +501,16 @@ function applyTemplatePreset(preset) {
    { key: 'email', label: 'Email Address', type: 'email', required: true, placeholder: 'e.g. user@example.com' }
   ];
  }
-
  const nameEl = document.getElementById('app-name-input');
  if (nameEl && !nameEl.disabled) nameEl.value = slug;
  document.getElementById('app-title-input').value = title;
  document.getElementById('app-description-input').value = desc;
  document.getElementById('app-submit-btn-input').value = submitBtn;
  setThemeSwatch(themeHex);
-
  renderFieldsBuilder(fields);
  switchAppModalTab('fields');
  showToast('Applied preset: ' + (title || 'Blank Form'), 'success');
 }
-
 async function openEditAppModal(appName) {
  const app = state.apps.find(a => a.appName === appName);
  if (!app) return;
@@ -566,7 +519,6 @@ async function openEditAppModal(appName) {
  document.getElementById('app-modal-title').innerText = 'Manage Form App: ' + app.appName;
  document.getElementById('app-name-input').value = app.appName;
  document.getElementById('app-name-input').disabled = false; // renaming is allowed
-
  const settings = app.settings || {};
  document.getElementById('app-title-input').value = settings.appTitle || app.appName;
  document.getElementById('app-description-input').value = settings.appDescription || '';
@@ -576,16 +528,13 @@ async function openEditAppModal(appName) {
  document.getElementById('app-success-msg-input').value = settings.successMessage || 'Thank you! Your submission has been received.';
  document.getElementById('app-redirect-url-input').value = settings.redirectUrl || '';
  document.getElementById('app-webhook-url-input').value = settings.webhookUrl || '';
-
  renderFieldsBuilder(app.fields || []);
- 
  document.getElementById('setting-origins').value = (settings.allowedOrigins || ['*']).join(', ');
  document.getElementById('setting-honeypot').value = settings.honeypotField || 'website';
  document.getElementById('setting-max-file-mb').value = Math.round((settings.maxFileBytes || 10485760) / (1024 * 1024));
  document.getElementById('setting-max-fields').value = settings.maxFormFields || 40;
  document.getElementById('setting-turnstile-enabled').checked = settings.turnstile?.enabled || false;
  document.getElementById('setting-turnstile-secret').value = settings.turnstile?.secretKey || '';
-
  const shopify = settings.shopify || {};
  document.getElementById('shopify-enabled').checked = shopify.enabled || false;
  document.getElementById('shopify-store-domain').value = shopify.storeDomain || '';
@@ -596,11 +545,9 @@ async function openEditAppModal(appName) {
  renderShopifyMappingTable(shopify.fieldMapping || {});
  renderShopifyWrites(shopify.writes || []);
  updateShopifyTabVisibility();
-
  switchAppModalTab('general');
  openModal('app-editor-modal');
 }
-
 function switchAppModalTab(tabKey) {
  state.activeTab = tabKey;
  document.querySelectorAll('.app-tab-btn').forEach(b => {
@@ -610,7 +557,6 @@ function switchAppModalTab(tabKey) {
   p.style.display = p.id === 'tab-pane-' + tabKey ? 'block' : 'none';
  });
 }
-
 function updateShopifyTabVisibility() {
  const enabled = document.getElementById('shopify-enabled')?.checked;
  const fieldsContainer = document.getElementById('shopify-config-fields');
@@ -619,16 +565,13 @@ function updateShopifyTabVisibility() {
   fieldsContainer.style.pointerEvents = enabled ? 'auto' : 'none';
  }
 }
-
 // --- Fields Schema Builder Table ---
 function renderFieldsBuilder(fields) {
  const container = document.getElementById('fields-builder-list');
  if (!container) return;
  container.innerHTML = fields.map((f, idx) => buildFieldRowHtml(f, idx)).join('');
  updateImageFieldDropdown();
- 
 }
-
 function buildFieldRowHtml(f, idx) {
  const isSelect = f.type === 'select' || f.type === 'radio';
  const isText = f.type === 'text' || f.type === 'textarea' || f.type === 'email' || f.type === 'url' || f.type === 'tel';
@@ -648,7 +591,6 @@ function buildFieldRowHtml(f, idx) {
   file: 'File / Image Upload'
  };
  const typeBadge = typeLabelMap[f.type] || f.type.toUpperCase();
-
  return \`
   <div class="field-card-item" data-idx="\${idx}">
    <!-- Card Header -->
@@ -665,7 +607,6 @@ function buildFieldRowHtml(f, idx) {
      <button type="button" class="btn btn-danger btn-sm" onclick="removeFieldRow(\${idx})" title="Remove field">✕ Remove</button>
     </div>
    </div>
-
    <!-- Core Fields: Key, Label, Type, Width -->
    <div class="field-card-grid-top">
     <div>
@@ -701,7 +642,6 @@ function buildFieldRowHtml(f, idx) {
      </select>
     </div>
    </div>
-
    <!-- Display & Hints: Placeholder, Default Value, Help Text -->
    <div class="field-card-grid-middle">
     <div>
@@ -717,7 +657,6 @@ function buildFieldRowHtml(f, idx) {
      <input type="text" class="form-input field-help-text" style="font-size:0.85rem;" value="\${escapeHtml(f.helpText || '')}" placeholder="e.g. We never share this info" />
     </div>
    </div>
-
    <!-- Advanced Customization: Regex Pattern, Error Msg, CSS Class -->
    <div class="field-card-grid-advanced">
     <div>
@@ -733,21 +672,18 @@ function buildFieldRowHtml(f, idx) {
      <input type="text" class="form-input field-custom-class" style="font-size:0.82rem; font-family:var(--font-mono);" value="\${escapeHtml(f.customClass || '')}" placeholder="e.g. my-custom-field col-span-2" />
     </div>
    </div>
-
    <!-- Type-Specific Controls -->
    <div class="field-card-options-box field-extra-text" style="display:\${isText ? 'flex' : 'none'}; align-items:center; gap:0.75rem;">
     <label class="form-label" style="margin:0; font-size:0.82rem; font-weight:600; color:#c7d2fe;">Max Character Length:</label>
     <input type="number" class="form-input field-max-length" style="width: 120px; font-size:0.85rem; padding:0.35rem 0.6rem;" value="\${f.maxLength || 1000}" min="1" max="10000" />
     <span class="form-hint" style="margin:0;">Limits user input size (up to 10,000 characters)</span>
    </div>
-
    <div class="field-card-options-box field-extra-number" style="display:\${isNumber ? 'flex' : 'none'}; align-items:center; gap:0.75rem;">
     <label class="form-label" style="margin:0; font-size:0.82rem; font-weight:600; color:#c7d2fe;">Min Allowed Value:</label>
     <input type="number" class="form-input field-min-val" style="width: 110px; font-size:0.85rem; padding:0.35rem 0.6rem;" value="\${f.min !== undefined ? f.min : ''}" placeholder="None" />
     <label class="form-label" style="margin:0; font-size:0.82rem; font-weight:600; color:#c7d2fe;">Max Allowed Value:</label>
     <input type="number" class="form-input field-max-val" style="width: 110px; font-size:0.85rem; padding:0.35rem 0.6rem;" value="\${f.max !== undefined ? f.max : ''}" placeholder="None" />
    </div>
-
    <div class="field-card-options-box field-extra-select" style="display:\${isSelect ? 'flex' : 'none'}; align-items:center; gap:1rem; width:100%;">
     <label class="form-label" style="margin:0; font-size:0.82rem; font-weight:600; color:#c7d2fe; white-space:nowrap;">Options (comma-separated):</label>
     <input type="text" class="form-input field-options" style="flex:1; min-width:200px; font-size:0.85rem; padding:0.4rem 0.7rem;" value="\${escapeHtml(optionsStr)}" placeholder="e.g. Option A, Option B, Option C" />
@@ -759,7 +695,6 @@ function buildFieldRowHtml(f, idx) {
   </div>
  \`;
 }
-
 function addFieldRow() {
  const container = document.getElementById('fields-builder-list');
  if (!container) return;
@@ -768,9 +703,7 @@ function addFieldRow() {
  div.innerHTML = buildFieldRowHtml({ key: 'field_' + (idx + 1), label: 'New Field', type: 'text', width: '100', required: false, maxLength: 500 }, idx);
  container.appendChild(div.firstElementChild);
  updateImageFieldDropdown();
- 
 }
-
 function removeFieldRow(idx) {
  const container = document.getElementById('fields-builder-list');
  if (!container) return;
@@ -780,7 +713,6 @@ function removeFieldRow(idx) {
   updateImageFieldDropdown();
  }
 }
-
 function handleFieldTypeChange(selectEl, idx) {
  const row = selectEl.closest('.field-card-item');
  if (!row) return;
@@ -794,7 +726,6 @@ function handleFieldTypeChange(selectEl, idx) {
  if (extraSelect) extraSelect.style.display = isSelect ? 'flex' : 'none';
  if (extraText) extraText.style.display = isText ? 'flex' : 'none';
  if (extraNum) extraNum.style.display = isNumber ? 'flex' : 'none';
-
  const pill = row.querySelector('.field-type-pill');
  if (pill) {
   const typeLabelMap = {
@@ -813,9 +744,7 @@ function handleFieldTypeChange(selectEl, idx) {
   pill.innerHTML = typeLabelMap[val] || val.toUpperCase();
  }
  updateImageFieldDropdown();
- 
 }
-
 function updateImageFieldDropdown() {
  const select = document.getElementById('shopify-image-field');
  if (!select) return;
@@ -831,7 +760,6 @@ function updateImageFieldDropdown() {
  select.innerHTML = '<option value="">-- None / No Image Sync --</option>' + 
   fileKeys.map(k => '<option value="' + escapeHtml(k) + '" ' + (current === k ? 'selected' : '') + '>' + escapeHtml(k) + '</option>').join('');
 }
-
 // --- Shopify Field Mapping Table ---
 function renderShopifyMappingTable(mapping) {
  const container = document.getElementById('shopify-mapping-list');
@@ -843,7 +771,6 @@ function renderShopifyMappingTable(mapping) {
  }
  container.innerHTML = entries.map(([appKey, shopKey]) => buildMappingRowHtml(appKey, shopKey)).join('');
 }
-
 function buildMappingRowHtml(appKey, shopKey) {
  return \`
   <div style="display:flex; gap:0.75rem; align-items:center; margin-bottom:0.5rem;" class="mapping-row">
@@ -854,16 +781,13 @@ function buildMappingRowHtml(appKey, shopKey) {
   </div>
  \`;
 }
-
 function addShopifyMappingRow() {
  const container = document.getElementById('shopify-mapping-list');
  if (!container) return;
  const div = document.createElement('div');
  div.innerHTML = buildMappingRowHtml('', '');
  container.appendChild(div.firstElementChild);
- 
 }
-
 // --- Save Application Schema ---
 async function saveApp() {
  const appName = document.getElementById('app-name-input').value.trim().toLowerCase();
@@ -871,7 +795,6 @@ async function saveApp() {
   showToast('App name must be 1-50 characters: lowercase letters, numbers, hyphens.', 'error');
   return;
  }
-
  // Collect fields
  const fields = [];
  let fieldError = null;
@@ -892,7 +815,6 @@ async function saveApp() {
   const pattern = row.querySelector('.field-pattern')?.value.trim() || '';
   const patternError = row.querySelector('.field-pattern-error')?.value.trim() || '';
   const customClass = row.querySelector('.field-custom-class')?.value.trim() || '';
-
   if (placeholder) field.placeholder = placeholder;
   if (helpText) field.helpText = helpText;
   if (defaultValue) field.defaultValue = defaultValue;
@@ -900,7 +822,6 @@ async function saveApp() {
   if (pattern) field.pattern = pattern;
   if (patternError) field.patternError = patternError;
   if (customClass) field.customClass = customClass;
-
   if (type === 'text' || type === 'textarea' || type === 'email' || type === 'url' || type === 'tel') {
    const maxEl = row.querySelector('.field-max-length');
    if (maxEl && maxEl.value) field.maxLength = parseInt(maxEl.value, 10);
@@ -929,7 +850,6 @@ async function saveApp() {
   switchAppModalTab('fields');
   return;
  }
-
  // Collect settings
  const appTitle = document.getElementById('app-title-input')?.value.trim() || '';
  const appDescription = document.getElementById('app-description-input')?.value.trim() || '';
@@ -938,7 +858,6 @@ async function saveApp() {
  const redirectUrl = document.getElementById('app-redirect-url-input')?.value.trim() || '';
  const themeColor = document.getElementById('app-theme-hex')?.value.trim() || '818cf8';
  const webhookUrl = document.getElementById('app-webhook-url-input')?.value.trim() || '';
-
  const originsVal = document.getElementById('setting-origins').value.trim();
  const allowedOrigins = originsVal ? originsVal.split(',').map(s => s.trim()).filter(Boolean) : ['*'];
  const honeypotField = document.getElementById('setting-honeypot').value.trim() || 'website';
@@ -946,7 +865,6 @@ async function saveApp() {
  const maxFormFields = parseInt(document.getElementById('setting-max-fields').value, 10) || 40;
  const turnstileEnabled = document.getElementById('setting-turnstile-enabled').checked;
  const turnstileSecret = document.getElementById('setting-turnstile-secret').value.trim();
-
  // Collect shopify settings
  const shopifyEnabled = document.getElementById('shopify-enabled').checked;
  const shopifyStoreDomain = document.getElementById('shopify-store-domain').value.trim();
@@ -954,7 +872,6 @@ async function saveApp() {
  const shopifyAdminToken = document.getElementById('shopify-admin-token').value.trim();
  const shopifyMetaobjectType = document.getElementById('shopify-metaobject-type').value.trim();
  const shopifyImageField = document.getElementById('shopify-image-field').value.trim();
-
  const fieldMapping = {};
  document.querySelectorAll('.mapping-row').forEach(row => {
   const appKey = row.querySelector('.mapping-app-key').value.trim();
@@ -963,7 +880,6 @@ async function saveApp() {
    fieldMapping[appKey] = shopKey;
   }
  });
-
  const settings = {
   appTitle,
   appDescription,
@@ -980,7 +896,6 @@ async function saveApp() {
   shopify: { enabled: shopifyEnabled }
  };
  if (turnstileSecret) settings.turnstile.secretKey = turnstileSecret;
-
  if (shopifyEnabled) {
   if (!shopifyStoreDomain || !/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/i.test(shopifyStoreDomain)) {
    showToast('Shopify Store Domain must look like your-store.myshopify.com', 'error');
@@ -996,7 +911,6 @@ async function saveApp() {
   document.querySelectorAll('.shopify-write-item').forEach(writeEl => {
    const metaobjectType = writeEl.querySelector('.write-mo-type').value.trim();
    if (!metaobjectType) return;
-   
    const w = {
     metaobjectType,
     imageFieldKey: writeEl.querySelector('.write-image-key').value.trim(),
@@ -1004,7 +918,6 @@ async function saveApp() {
     condition: null,
     additionalConditions: []
    };
-
    // main condition
    const cField = writeEl.querySelector('.write-cond-field').value.trim();
    const cOp = writeEl.querySelector('.write-cond-op').value;
@@ -1014,7 +927,6 @@ async function saveApp() {
    } else {
     w.condition = { field: '', operator: 'always', value: '' };
    }
-
    // additional conditions
    writeEl.querySelectorAll('.additional-cond-row').forEach(cRow => {
     const acField = cRow.querySelector('.write-cond-field').value.trim();
@@ -1026,17 +938,14 @@ async function saveApp() {
      });
     }
    });
-
    // custom mapping
    writeEl.querySelectorAll('.write-mapping-row').forEach(mRow => {
     const appKey = mRow.querySelector('.write-mapping-app-key').value.trim();
     const shopKey = mRow.querySelector('.write-mapping-shop-key').value.trim();
     if (appKey && shopKey) w.fieldMapping[appKey] = shopKey;
    });
-
    writes.push(w);
   });
-
   settings.shopify = {
    enabled: true,
    storeDomain: shopifyStoreDomain,
@@ -1050,7 +959,6 @@ async function saveApp() {
    settings.shopify.adminAccessToken = shopifyAdminToken;
   }
  }
-
  const newAppName = (document.getElementById('app-name-input').value || '').trim().toLowerCase();
  const isRename = state.editingApp && newAppName && newAppName !== state.editingApp.appName;
  const payload = state.editingApp
@@ -1059,7 +967,6 @@ async function saveApp() {
  const url = state.editingApp ? '/api/apps/' + encodeURIComponent(state.editingApp.appName) : '/api/apps';
  const method = state.editingApp ? 'PUT' : 'POST';
  const effectiveAppName = state.editingApp ? (isRename ? newAppName : state.editingApp.appName) : appName;
-
  try {
   const res = await fetch(url, {
    method,
@@ -1078,7 +985,6 @@ async function saveApp() {
   if (isRename) { showToast('App renamed to "' + effectiveAppName + '"', 'success'); }
   closeModal('app-editor-modal');
   await loadApps();
-  
   if (method === 'POST') {
    openApiHubModal(effectiveAppName);
   }
@@ -1086,7 +992,6 @@ async function saveApp() {
   showToast('Network error saving application.', 'error');
  }
 }
-
 async function deleteApp(appName) {
  if (!confirm('Are you sure you want to delete form app "' + appName + '" and all its submissions? This cannot be undone.')) {
   return;
@@ -1107,62 +1012,48 @@ async function deleteApp(appName) {
   showToast('Network error deleting app.', 'error');
  }
 }
-
 // --- Integration & API Hub Modal ---
 function openApiHubModal(appName) {
  const app = state.apps.find(a => a.appName === appName);
  if (!app) return;
  state.hubApp = app;
  document.getElementById('api-hub-modal-title').innerText = 'API Hub & Code Snippets: ' + app.appName;
-
  const origin = window.location.origin;
  const submitUrl = origin + '/api/' + encodeURIComponent(state.user.username) + '/' + encodeURIComponent(app.appName) + '/';
- 
  document.getElementById('hub-submit-url').value = submitUrl;
- 
  // Generate HTML Snippet
  const htmlSnippet = buildHtmlFormSnippet(app, submitUrl);
  document.getElementById('snippet-html').innerText = htmlSnippet;
-
  // Generate JS Snippet
  const jsSnippet = buildJsFetchSnippet(app, submitUrl);
  document.getElementById('snippet-js').innerText = jsSnippet;
-
  // Generate cURL Snippet
  const curlSnippet = buildCurlSnippet(app, submitUrl);
  document.getElementById('snippet-curl').innerText = curlSnippet;
-
  openModal('api-hub-modal');
 }
-
 function copyEndpointUrl(btnEl) {
  const url = document.getElementById('hub-submit-url').value;
  navigator.clipboard.writeText(url).then(() => {
   btnEl.innerHTML = 'Copied';
-  
   setTimeout(() => {
    btnEl.innerHTML = 'Copy URL';
-   
   }, 2000);
  });
 }
-
 function buildHtmlFormSnippet(app, submitUrl) {
  const fields = app.fields || [];
  const honeypot = app.settings?.honeypotField || 'website';
  let lines = [];
  lines.push('<form id="formhub-form" action="' + submitUrl + '" method="POST" enctype="multipart/form-data">');
- 
  // Honeypot field
  lines.push(' <!-- Honeypot (hidden from real users) -->');
  lines.push(' <div style="display:none;"><input type="text" name="' + honeypot + '" value="" /></div>');
  lines.push('');
-
  fields.forEach(f => {
   lines.push(' <!-- ' + escapeHtml(f.label) + ' -->');
   lines.push(' <div class="form-group">');
   lines.push('  <label for="' + f.key + '">' + escapeHtml(f.label) + (f.required ? ' *' : '') + '</label>');
-  
   if (f.type === 'select') {
    lines.push('  <select name="' + f.key + '" id="' + f.key + '"' + (f.required ? ' required' : '') + '>');
    (f.options || []).forEach(opt => {
@@ -1181,28 +1072,23 @@ function buildHtmlFormSnippet(app, submitUrl) {
   lines.push(' </div>');
   lines.push('');
  });
-
  if (app.settings?.turnstile?.enabled) {
   lines.push(' <!-- Cloudflare Turnstile CAPTCHA -->');
   lines.push(' <div class="cf-turnstile" data-sitekey="YOUR_TURNSTILE_SITE_KEY"></div>');
   lines.push('');
  }
-
  lines.push(' <button type="submit" class="submit-btn">Submit</button>');
  lines.push('</form>');
  return lines.join('\\n');
 }
-
 function buildJsFetchSnippet(app, submitUrl) {
  return \`async function submitFormHubForm(formElement) {
  const formData = new FormData(formElement);
- 
  try {
   const response = await fetch('\${submitUrl}', {
    method: 'POST',
    body: formData
   });
-  
   const result = await response.json();
   if (response.ok && result.ok) {
    alert('Form submitted successfully! ID: ' + result.id);
@@ -1216,7 +1102,6 @@ function buildJsFetchSnippet(app, submitUrl) {
  }
 }\`;
 }
-
 function buildCurlSnippet(app, submitUrl) {
  const fields = app.fields || [];
  let lines = ['curl -X POST "' + submitUrl + '" \\\\'];
@@ -1228,7 +1113,6 @@ function buildCurlSnippet(app, submitUrl) {
  });
  return lines.join('\\n');
 }
-
 function copyText(elementId, btnEl) {
  const textEl = document.getElementById(elementId);
  if (!textEl) return;
@@ -1236,14 +1120,11 @@ function copyText(elementId, btnEl) {
  navigator.clipboard.writeText(text).then(() => {
   const orig = btnEl.innerHTML;
   btnEl.innerHTML = 'Copied';
-  
   setTimeout(() => {
    btnEl.innerHTML = orig;
-   
   }, 2000);
  });
 }
-
 // --- Submissions Viewer Modal ---
 async function openSubmissionsModal(appName) {
  const app = state.apps.find(a => a.appName === appName);
@@ -1251,9 +1132,7 @@ async function openSubmissionsModal(appName) {
  state.selectedAppForSubmissions = app;
  document.getElementById('submissions-modal-title').innerText = 'Submissions for: ' + app.appName;
  document.getElementById('submissions-table-body').innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 2rem;">Loading submissions...</td></tr>';
- 
  openModal('submissions-modal');
-
  try {
   const res = await fetch('/api/apps/' + encodeURIComponent(app.appName) + '/submissions', {
    headers: { 'Authorization': 'Bearer ' + state.token }
@@ -1269,7 +1148,6 @@ async function openSubmissionsModal(appName) {
   showToast('Network error loading submissions.', 'error');
  }
 }
-
 function renderSubmissionsTable(list) {
  const container = document.getElementById('submissions-table-body');
  if (!container) return;
@@ -1277,13 +1155,11 @@ function renderSubmissionsTable(list) {
   container.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 3rem; color:var(--text-secondary);">No submissions collected yet. Use the Live Test Form or submit via API!</td></tr>';
   return;
  }
-
  container.innerHTML = list.map(s => {
   const dateStr = new Date(s.createdAt).toLocaleString();
   const status = s.shopifyStatus || 'skipped';
   const statusClass = 'status-' + status;
   const fieldsStr = Object.entries(s.data || {}).map(([k, v]) => '<strong>' + escapeHtml(k) + ':</strong> ' + escapeHtml(v)).join('<br/>');
-  
   // Check files
   let filesHtml = '-';
   if (s.files && Object.keys(s.files).length > 0) {
@@ -1297,7 +1173,6 @@ function renderSubmissionsTable(list) {
     return '';
    }).join('<br/>');
   }
-
   return \`
    <tr>
     <td><code style="font-size:0.75rem;">\${escapeHtml(s.id.slice(0, 8))}...</code></td>
@@ -1311,9 +1186,7 @@ function renderSubmissionsTable(list) {
    </tr>
   \`;
  }).join('');
- 
 }
-
 async function inspectSubmissionStatus(submissionId) {
  const app = state.selectedAppForSubmissions;
  if (!app) return;
@@ -1328,7 +1201,6 @@ async function inspectSubmissionStatus(submissionId) {
   }
   const sub = data.submission;
   document.getElementById('inspect-modal-title').innerText = 'Submission Details: ' + sub.id;
-  
   let detailsHtml = \`
    <div style="margin-bottom: 1.25rem;">
     <h4 style="margin-bottom:0.5rem; color:var(--text-secondary);">Sync Status</h4>
@@ -1336,7 +1208,6 @@ async function inspectSubmissionStatus(submissionId) {
     \${sub.shopifyHandle ? '<p style="margin-top:0.5rem;">Shopify Handle: <code style="color:#34d399;">' + escapeHtml(sub.shopifyHandle) + '</code></p>' : ''}
    </div>
   \`;
-
   if (sub.shopifyStatus === 'failed' && sub.shopifyErrors) {
    detailsHtml += \`
     <div style="margin-bottom: 1.25rem; padding: 1rem; background: rgba(239, 68, 68, 0.1); border-radius: var(--radius-md);">
@@ -1347,14 +1218,12 @@ async function inspectSubmissionStatus(submissionId) {
     </div>
    \`;
   }
-
   detailsHtml += \`
    <div>
     <h4 style="margin-bottom:0.5rem; color:var(--text-secondary);">Submitted Form Data</h4>
     <pre class="code-box" style="margin-top:0;">\${escapeHtml(JSON.stringify(s.data, null, 2))}</pre>
    </div>
   \`;
-
   document.getElementById('inspect-modal-body').innerHTML = detailsHtml;
   openModal('inspect-submission-modal');
  } catch (e) {
@@ -1362,7 +1231,6 @@ async function inspectSubmissionStatus(submissionId) {
     console.error('[inspectSubmission]', e);
  }
 }
-
 function exportSubmissionsCsv() {
  const list = state.submissions || [];
  if (list.length === 0) {
@@ -1375,7 +1243,6 @@ function exportSubmissionsCsv() {
  });
  const headers = Array.from(allKeys);
  const rows = [headers.join(',')];
-
  list.forEach(s => {
   const row = headers.map(h => {
    if (h === 'ID') return '"' + String(s.id) + '"';
@@ -1385,7 +1252,6 @@ function exportSubmissionsCsv() {
   });
   rows.push(row.join(','));
  });
-
  const blob = new Blob([rows.join('\\n')], { type: 'text/csv;charset=utf-8;' });
  const url = URL.createObjectURL(blob);
  const a = document.createElement('a');
@@ -1394,7 +1260,6 @@ function exportSubmissionsCsv() {
  a.click();
  URL.revokeObjectURL(url);
 }
-
 // --- Live Form Tester Modal ---
 function openLiveTestModal(appName) {
  const app = state.apps.find(a => a.appName === appName);
@@ -1405,22 +1270,17 @@ function openLiveTestModal(appName) {
  const desc = settings.appDescription || 'Fill out the form below to test your Edge submission endpoint.';
  const btnText = settings.submitBtnText || 'Submit Test Entry';
  const themeColor = settings.themeColor || '818cf8';
-
  document.getElementById('test-modal-title').innerText = 'Test Live Form: ' + title;
  document.getElementById('test-result-box').style.display = 'none';
-
  const container = document.getElementById('test-form-fields-container');
  const fields = app.fields || [];
-
  let html = \`
   <div style="margin-bottom:1.25rem; padding:1rem; background:rgba(255,255,255,0.02); border-left:4px solid \${themeColor}; border-radius:var(--radius-md);">
    <h4 style="margin:0 0 0.4rem 0; font-size:1.05rem; font-weight:700;">\${escapeHtml(title)}</h4>
    \${desc ? '<p style="margin:0; font-size:0.85rem; color:var(--text-secondary);">' + escapeHtml(desc) + '</p>' : ''}
   </div>
  \`;
-
  html += '<div style="display:grid; grid-template-columns: repeat(6, 1fr); gap: 0.75rem 1rem;">';
-
  html += fields.map(f => {
   const hintHtml = f.helpText ? '<span class="form-hint" style="display:block; margin-top:0.25rem;">' + escapeHtml(f.helpText) + '</span>' : '';
   const reqStr = f.required ? 'required' : '';
@@ -1429,7 +1289,6 @@ function openLiveTestModal(appName) {
   const colSpan = f.width === '50' ? 'span 3' : (f.width === '33' ? 'span 2' : 'span 6');
   const groupStyle = 'grid-column: ' + colSpan + '; margin-bottom:1.1rem;';
   const customClassStr = f.customClass ? ' ' + escapeHtml(f.customClass) : '';
-
   if (f.type === 'select') {
    return \`
     <div class="form-group\${customClassStr}" style="\${groupStyle}">
@@ -1490,12 +1349,10 @@ function openLiveTestModal(appName) {
    else if (f.type === 'number') typeStr = 'number';
    else if (f.type === 'tel') typeStr = 'tel';
    else if (f.type === 'url') typeStr = 'url';
-
    const minAttr = f.min !== undefined ? 'min="' + f.min + '"' : '';
    const maxAttr = f.max !== undefined ? 'max="' + f.max + '"' : '';
    const maxLenAttr = f.maxLength ? 'maxlength="' + f.maxLength + '"' : '';
    const patAttr = f.pattern ? 'pattern="' + escapeHtml(f.pattern) + '" title="' + escapeHtml(f.patternError || 'Must match pattern ' + f.pattern) + '"' : '';
-
    return \`
     <div class="form-group\${customClassStr}" style="\${groupStyle}">
      <label class="form-label">\${escapeHtml(f.label)}\${reqStar}</label>
@@ -1505,22 +1362,16 @@ function openLiveTestModal(appName) {
    \`;
   }
  }).join('');
-
  html += '</div>';
-
  container.innerHTML = html;
-
  const submitBtn = document.querySelector('#test-form button[type="submit"]');
  if (submitBtn) {
   submitBtn.innerHTML = btnText;
   submitBtn.style.backgroundColor = themeColor;
   submitBtn.style.borderColor = themeColor;
  }
-
  openModal('live-test-modal');
- 
 }
-
 async function submitLiveTestForm(e) {
  e.preventDefault();
  const app = state.testApp;
@@ -1528,18 +1379,14 @@ async function submitLiveTestForm(e) {
  const form = document.getElementById('test-form');
  const formData = new FormData(form);
  const submitUrl = '/api/' + encodeURIComponent(state.user.username) + '/' + encodeURIComponent(app.appName) + '/';
-
  const resBox = document.getElementById('test-result-box');
  resBox.style.display = 'block';
-
  // Detect whether the form has any file inputs with a selected file.
  const hasFile = app.fields.some(f => f.type === 'file' && formData.get(f.key) instanceof File && formData.get(f.key).size > 0);
-
  if (hasFile) {
   // Use XHR so we can show upload progress.
   await new Promise((resolve) => {
    const xhr = new XMLHttpRequest();
-
    // --- Upload phase: progress bar ---
    xhr.upload.onprogress = (ev) => {
     if (!ev.lengthComputable) return;
@@ -1551,7 +1398,6 @@ async function submitLiveTestForm(e) {
             transition:width 0.15s ease;"></div>
      </div>\`;
    };
-
    xhr.upload.onload = () => {
     resBox.innerHTML = \`
      <div style="display:flex; align-items:center; gap:0.6rem; font-size:0.875rem; color:var(--text-secondary);">
@@ -1561,7 +1407,6 @@ async function submitLiveTestForm(e) {
       Uploading file to Shopify…
      </div>\`;
    };
-
    xhr.onload = () => {
     try {
      const result = JSON.parse(xhr.responseText);
@@ -1578,25 +1423,21 @@ async function submitLiveTestForm(e) {
       resBox.innerHTML = '<span style="color:var(--danger-color);">Submission Error:</span> <code>' + escapeHtml(result.error || 'Unknown error') + '</code>';
      }
     } catch { resBox.innerHTML = '<span style="color:var(--danger-color);">Invalid server response</span>'; }
-    
     resolve();
    };
-
    xhr.onerror = () => {
     resBox.innerHTML = '<span style="color:var(--danger-color);">Network Error during upload</span>';
-    
     resolve();
    };
-
    xhr.open('POST', submitUrl);
+   if (state.token) xhr.setRequestHeader('Authorization', 'Bearer ' + state.token);
    xhr.send(formData);
   });
  } else {
   // No file — plain fetch is fine.
   resBox.innerHTML = 'Submitting test entry to edge endpoint...';
-  
   try {
-   const response = await fetch(submitUrl, { method: 'POST', body: formData });
+   const response = await fetch(submitUrl, { method: 'POST', headers: state.token ? { 'Authorization': 'Bearer ' + state.token } : {}, body: formData });
    const result = await response.json();
    if (response.ok && result.ok) {
     showToast(result.successMessage || 'Live test submitted successfully!', 'success');
@@ -1613,10 +1454,8 @@ async function submitLiveTestForm(e) {
   } catch (err) {
    resBox.innerHTML = '<span style="color:var(--danger-color);">Network Error during submit</span>';
   }
-  
  }
 }
-
 // --- Auth Modals (Login & Register) ---
 function openLoginModal() {
  document.getElementById('login-username').value = '';
@@ -1624,7 +1463,6 @@ function openLoginModal() {
  document.getElementById('login-error-msg').style.display = 'none';
  openModal('login-modal');
 }
-
 function openRegisterModal() {
  document.getElementById('reg-username').value = '';
  document.getElementById('reg-email').value = '';
@@ -1632,13 +1470,11 @@ function openRegisterModal() {
  document.getElementById('reg-error-msg').style.display = 'none';
  openModal('register-modal');
 }
-
 async function handleLoginSubmit(e) {
  e.preventDefault();
  const username = document.getElementById('login-username').value.trim();
  const password = document.getElementById('login-password').value;
  const errorBox = document.getElementById('login-error-msg');
- 
  try {
   const res = await fetch('/api/login', {
    method: 'POST',
@@ -1664,21 +1500,18 @@ async function handleLoginSubmit(e) {
    } else {
     errorBox.innerText = data.error || 'Login failed.';
    }
-   
   }
  } catch (err) {
   errorBox.style.display = 'block';
   errorBox.innerText = 'Network error during login.';
  }
 }
-
 async function handleRegisterSubmit(e) {
  e.preventDefault();
  const username = document.getElementById('reg-username').value.trim();
  const email = document.getElementById('reg-email').value.trim();
  const password = document.getElementById('reg-password').value;
  const errorBox = document.getElementById('reg-error-msg');
- 
  try {
   const res = await fetch('/api/register', {
    method: 'POST',
@@ -1704,25 +1537,21 @@ async function handleRegisterSubmit(e) {
    } else {
     errorBox.innerText = data.error || 'Registration failed.';
    }
-   
   }
  } catch (err) {
   errorBox.style.display = 'block';
   errorBox.innerText = 'Network error during registration.';
  }
 }
-
 // --- Modal Helper Logic ---
 function openModal(id) {
  const modal = document.getElementById(id);
  if (modal) modal.classList.add('open');
 }
-
 function closeModal(id) {
  const modal = document.getElementById(id);
  if (modal) modal.classList.remove('open');
 }
-
 function setupModalEvents() {
  document.querySelectorAll('.modal-overlay').forEach(el => {
   el.addEventListener('click', (e) => {
@@ -1732,9 +1561,7 @@ function setupModalEvents() {
   });
  });
 }
-
 // ── API Key Management ───────────────────────────────────────────────────
-
 async function loadApiKeys() {
  const container = document.getElementById('apikeys-list-container');
  if (!container) return;
@@ -1752,12 +1579,10 @@ async function loadApiKeys() {
   container.innerHTML = '<div style="color:var(--danger-color);padding:1rem;">Network error.</div>';
  }
 }
-
 function renderApiKeysList(keys, container) {
  if (!container) return;
  const active = keys.filter(k => !k.revokedAt);
  const revoked = keys.filter(k => k.revokedAt);
-
  if (keys.length === 0) {
   container.innerHTML = \`
    <div style="text-align:center; padding:2.5rem; background:var(--bg-card); border:1px dashed var(--border-color); border-radius:var(--radius-md);">
@@ -1767,7 +1592,6 @@ function renderApiKeysList(keys, container) {
   \`;
   return;
  }
-
  const renderKey = (k) => {
   const perms = k.permissions || {};
   const actions = perms.actions || [];
@@ -1796,7 +1620,6 @@ function renderApiKeysList(keys, container) {
    </div>
   \`;
  };
-
  container.innerHTML = \`
   <div class="apikey-list">
    \${active.map(renderKey).join('')}
@@ -1809,7 +1632,6 @@ function renderApiKeysList(keys, container) {
   </div>
  \`;
 }
-
 async function revokeApiKey(id, btn) {
  if (!confirm('Revoke this API key? All requests using it will immediately fail.')) return;
  btn.disabled = true;
@@ -1834,7 +1656,6 @@ async function revokeApiKey(id, btn) {
   btn.textContent = 'Revoke';
  }
 }
-
 function openCreateApiKeyModal() {
  // Reset form to creation state
  document.getElementById('apikey-reveal-area').style.display = 'none';
@@ -1845,7 +1666,6 @@ function openCreateApiKeyModal() {
  document.getElementById('perm-submit').checked = true;
  document.getElementById('scope-all').checked = true;
  document.getElementById('apikey-app-list-container').style.display = 'none';
-
  // Populate app checkboxes with current apps list
  const checkboxContainer = document.getElementById('apikey-app-checkboxes');
  if (checkboxContainer) {
@@ -1861,26 +1681,21 @@ function openCreateApiKeyModal() {
    checkboxContainer.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem; margin:0;">No apps found. Create an app first.</p>';
   }
  }
-
  openModal('apikey-create-modal');
 }
-
 function toggleApikeyAppList() {
  const isSpecific = document.getElementById('scope-specific').checked;
  document.getElementById('apikey-app-list-container').style.display = isSpecific ? '' : 'none';
 }
-
 async function submitCreateApiKey() {
  const errEl = document.getElementById('apikey-create-error');
  errEl.style.display = 'none';
-
  const name = document.getElementById('apikey-name-input').value.trim();
  if (!name) {
   errEl.textContent = 'Please provide a name for this key.';
   errEl.style.display = '';
   return;
  }
-
  const actions = [];
  if (document.getElementById('perm-read').checked) actions.push('read');
  if (document.getElementById('perm-submit').checked) actions.push('submit');
@@ -1889,7 +1704,6 @@ async function submitCreateApiKey() {
   errEl.style.display = '';
   return;
  }
-
  let apps = '*';
  if (document.getElementById('scope-specific').checked) {
   const checked = Array.from(document.querySelectorAll('#apikey-app-checkboxes input[name="apikey-app"]:checked')).map(el => el.value);
@@ -1900,10 +1714,8 @@ async function submitCreateApiKey() {
   }
   apps = checked;
  }
-
  const btn = document.querySelector('#apikey-create-modal #apikey-create-form .btn-primary');
  if (btn) { btn.disabled = true; btn.textContent = 'Generating...'; }
-
  try {
   const res = await fetch('/api/apikeys', {
    method: 'POST',
@@ -1914,14 +1726,12 @@ async function submitCreateApiKey() {
    body: JSON.stringify({ name, permissions: { actions, apps } })
   });
   const data = await res.json();
-
   if (!data.ok || !data.apikey) {
    errEl.textContent = data.error || 'Failed to create API key.';
    errEl.style.display = '';
    if (btn) { btn.disabled = false; btn.textContent = 'Generate Key'; }
    return;
   }
-
   // Show reveal area
   document.getElementById('apikey-reveal-value').textContent = data.apikey.key;
   document.getElementById('apikey-create-form').style.display = 'none';
@@ -1933,7 +1743,6 @@ async function submitCreateApiKey() {
   if (btn) { btn.disabled = false; btn.textContent = 'Generate Key'; }
  }
 }
-
 function copyApiKeyValue() {
  const val = document.getElementById('apikey-reveal-value').textContent;
  if (!val) return;
@@ -1943,7 +1752,6 @@ function copyApiKeyValue() {
   showToast('Copy failed — please select and copy manually.', 'error');
  });
 }
-
 // --- Universal Conditional Writes UI Logic ---
 function renderShopifyWrites(writesList) {
  const container = document.getElementById('shopify-writes-list');
@@ -1954,20 +1762,16 @@ function renderShopifyWrites(writesList) {
  }
 }
 window.renderShopifyWrites = renderShopifyWrites;
-
 function addShopifyWrite() {
  const container = document.getElementById('shopify-writes-list');
  if (container) container.appendChild(buildShopifyWriteEl({}));
 }
 window.addShopifyWrite = addShopifyWrite;
-
 function buildShopifyWriteEl(w = {}) {
  const div = document.createElement('div');
  div.className = 'shopify-write-item';
  div.style.cssText = 'background:rgba(0,0,0,0.15); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:1rem; display:flex; flex-direction:column; gap:0.75rem; position:relative;';
- 
  const cOp = w.condition?.operator || 'always';
- 
  div.innerHTML = \`
   <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.shopify-write-item').remove()" style="position:absolute; top:1rem; right:1rem;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
   <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; padding-right:2rem;">
@@ -1980,7 +1784,6 @@ function buildShopifyWriteEl(w = {}) {
     <input type="text" class="form-input write-image-key" placeholder="e.g. photo" value="\${escapeHtml(w.imageFieldKey || '')}" />
    </div>
   </div>
-  
   <div style="background:rgba(255,255,255,0.03); padding:0.75rem; border-radius:var(--radius-sm);">
    <label class="form-label" style="margin-bottom:0.4rem; font-size:0.85rem; color:#c7d2fe;">Primary Condition</label>
    <div style="display:flex; gap:0.5rem; align-items:center;">
@@ -1995,14 +1798,12 @@ function buildShopifyWriteEl(w = {}) {
     </select>
     <input type="text" class="form-input write-cond-val" placeholder="Value (e.g. yes)" value="\${escapeHtml(w.condition?.value || '')}" style="width:45%; font-size:0.85rem;" />
    </div>
-   
    <!-- Additional conditions -->
    <div class="additional-conds-list" style="margin-top:0.5rem; display:flex; flex-direction:column; gap:0.5rem;">
     \${(w.additionalConditions || []).map(ac => buildWriteCondRowHtml(ac)).join('')}
    </div>
    <button type="button" class="btn btn-secondary btn-sm" onclick="this.previousElementSibling.insertAdjacentHTML('beforeend', buildWriteCondRowHtml())" style="margin-top:0.5rem; font-size:0.75rem; padding:0.2rem 0.5rem;">+ AND Condition</button>
   </div>
-
   <div style="background:rgba(255,255,255,0.03); padding:0.75rem; border-radius:var(--radius-sm);">
    <label class="form-label" style="margin-bottom:0.4rem; font-size:0.85rem; color:#c7d2fe;">Custom Mapping (Optional)</label>
    <div class="write-mapping-list" style="display:flex; flex-direction:column; gap:0.5rem;">
@@ -2013,7 +1814,6 @@ function buildShopifyWriteEl(w = {}) {
  \`;
  return div;
 }
-
 window.buildWriteCondRowHtml = function(cond = {}) {
  const op = cond.operator || 'equals';
  return \`
@@ -2032,7 +1832,6 @@ window.buildWriteCondRowHtml = function(cond = {}) {
   </div>
  \`;
 }
-
 window.buildWriteMappingRowHtml = function(appKey = '', shopKey = '') {
  return \`
   <div class="write-mapping-row" style="display:flex; gap:0.5rem; align-items:center;">
@@ -2043,7 +1842,6 @@ window.buildWriteMappingRowHtml = function(appKey = '', shopKey = '') {
   </div>
  \`;
 }
-
 // --- App Bundles UI Logic ---
 async function loadBundles() {
  const container = document.getElementById('bundles-grid-container');
@@ -2060,7 +1858,6 @@ async function loadBundles() {
  }
 }
 window.loadBundles = loadBundles;
-
 function renderBundlesGrid(bundles) {
  const container = document.getElementById('bundles-grid-container');
  if (!container) return;
@@ -2073,7 +1870,6 @@ function renderBundlesGrid(bundles) {
   \`;
   return;
  }
-
  container.innerHTML = bundles.map(b => {
   return \`
    <div class="app-card" style="border-left: 3px solid #f59e0b;">
@@ -2094,7 +1890,6 @@ function renderBundlesGrid(bundles) {
   \`;
  }).join('');
 }
-
 window.openCreateBundleModal = function() {
  state.editingBundle = null;
  document.getElementById('bundle-modal-title').innerText = 'Create App Bundle';
@@ -2104,11 +1899,9 @@ window.openCreateBundleModal = function() {
  document.getElementById('bundle-success-msg').value = '';
  document.getElementById('bundle-redirect-url').value = '';
  document.getElementById('bundle-origins').value = '*';
- 
  populateBundleAppsSelect([]);
  openModal('bundle-editor-modal');
 }
-
 window.openEditBundleModal = function(bundleName) {
  const b = state.bundles.find(x => x.bundleName === bundleName);
  if (!b) return;
@@ -2120,11 +1913,9 @@ window.openEditBundleModal = function(bundleName) {
  document.getElementById('bundle-success-msg').value = b.settings?.successMessage || '';
  document.getElementById('bundle-redirect-url').value = b.settings?.redirectUrl || '';
  document.getElementById('bundle-origins').value = (b.settings?.allowedOrigins || ['*']).join(', ');
- 
  populateBundleAppsSelect(b.linkedApps || []);
  openModal('bundle-editor-modal');
 }
-
 function populateBundleAppsSelect(selectedApps = []) {
  const select = document.getElementById('bundle-apps-select');
  if (!select) return;
@@ -2134,26 +1925,21 @@ function populateBundleAppsSelect(selectedApps = []) {
   </option>
  \`).join('');
 }
-
 window.saveBundle = async function() {
  const bundleName = document.getElementById('bundle-name-input').value.trim();
  const displayName = document.getElementById('bundle-display-input').value.trim();
  const opts = document.getElementById('bundle-apps-select').selectedOptions;
  const linkedApps = Array.from(opts).map(o => o.value);
- 
  if (!bundleName) { showToast('Bundle name is required.', 'error'); return; }
  if (linkedApps.length === 0) { showToast('Select at least one app to link.', 'error'); return; }
-
  const settings = {
   successMessage: document.getElementById('bundle-success-msg').value.trim(),
   redirectUrl: document.getElementById('bundle-redirect-url').value.trim(),
   allowedOrigins: document.getElementById('bundle-origins').value.split(',').map(s=>s.trim()).filter(Boolean)
  };
-
  try {
   const url = state.editingBundle ? '/api/bundles/' + encodeURIComponent(bundleName) : '/api/bundles';
   const method = state.editingBundle ? 'PUT' : 'POST';
-
   const res = await fetch(url, {
    method,
    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + state.token },
@@ -2171,7 +1957,6 @@ window.saveBundle = async function() {
   showToast('Network error saving bundle.', 'error');
  }
 }
-
 window.deleteBundle = async function(bundleName) {
  if (!confirm('Delete bundle "' + bundleName + '"?')) return;
  try {
