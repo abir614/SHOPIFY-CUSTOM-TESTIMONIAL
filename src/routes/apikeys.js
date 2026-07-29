@@ -3,7 +3,7 @@ import { jsonResponse } from "../security.js";
 import { getCollections } from "../db.js";
 import { randomBytes } from "node:crypto";
 
-const KEY_PREFIX = "fhk_";
+const KEY_PREFIX = "abir_";
 const KEY_BYTES = 32; // 64 hex chars
 
 /** Generate a cryptographically random API key */

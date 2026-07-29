@@ -4,7 +4,7 @@ import { getCollections } from "../db.js";
 import { handleListSubmissions, handleGetSubmission } from "./submissions.js";
 import { handleSubmit } from "./submit.js";
 
-const KEY_RE = /^fhk_[0-9a-f]{64}$/i;
+const KEY_RE = /^abir_[0-9a-f]{64}$/i;
 
 /** Check whether an API key is valid and has the requested action + app permission.
  *  Returns { error, status, message } on failure, or { key, ownerUserId, ownerUsername } on success.
