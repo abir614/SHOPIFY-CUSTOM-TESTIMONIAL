@@ -95,7 +95,7 @@ export async function handleRequest(request) {
 
     if (path === "/api" || path.startsWith("/api/")) {
       // ── API Key Gateway: /api/fhk_xxx/... ─────────────────────────────
-      const gatewayMatch = path.match(/^\/api\/(fhk_[0-9a-f]{64})(\/.*)?$/i);
+      const gatewayMatch = path.match(/^\/api\/(abir_[0-9a-f]{64})(\/.*)?$/i);
       if (gatewayMatch) {
         const rawKey = gatewayMatch[1];
         const subPath = gatewayMatch[2] || "";
@@ -128,6 +128,7 @@ export async function handleRequest(request) {
         );
       }
 
+      // /api/* paths never render UI — always return JSON
       return jsonResponse({ error: "Not found." }, 404);
     }
 
