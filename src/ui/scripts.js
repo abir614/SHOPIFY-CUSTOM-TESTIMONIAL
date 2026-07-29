@@ -576,7 +576,7 @@ function buildFieldRowHtml(f, idx) {
  const isSelect = f.type === 'select' || f.type === 'radio';
  const isText = f.type === 'text' || f.type === 'textarea' || f.type === 'email' || f.type === 'url' || f.type === 'tel';
  const isNumber = f.type === 'number';
- const optionsStr = Array.isArray(f.options) ? f.options.join(', ') : '';
+ const optionsStr = Array.isArray(f.options) ? f.options.join('\n') : '';
  const typeLabelMap = {
   text: 'Text Input',
   email: 'Email Address',
@@ -684,9 +684,9 @@ function buildFieldRowHtml(f, idx) {
     <label class="form-label" style="margin:0; font-size:0.82rem; font-weight:600; color:#c7d2fe;">Max Allowed Value:</label>
     <input type="number" class="form-input field-max-val" style="width: 110px; font-size:0.85rem; padding:0.35rem 0.6rem;" value="\${f.max !== undefined ? f.max : ''}" placeholder="None" />
    </div>
-   <div class="field-card-options-box field-extra-select" style="display:\${isSelect ? 'flex' : 'none'}; align-items:center; gap:1rem; width:100%;">
-    <label class="form-label" style="margin:0; font-size:0.82rem; font-weight:600; color:#c7d2fe; white-space:nowrap;">Options (comma-separated):</label>
-    <input type="text" class="form-input field-options" style="flex:1; min-width:200px; font-size:0.85rem; padding:0.4rem 0.7rem;" value="\${escapeHtml(optionsStr)}" placeholder="e.g. Option A, Option B, Option C" />
+   <div class="field-card-options-box field-extra-select" style="display:\${isSelect ? 'flex' : 'none'}; align-items:flex-start; gap:1rem; width:100%;">
+    <label class="form-label" style="margin:0; font-size:0.82rem; font-weight:600; color:#c7d2fe; white-space:nowrap; padding-top:0.4rem;">Options (one per line):</label>
+    <textarea class="form-textarea field-options" style="flex:1; min-width:200px; font-size:0.85rem; padding:0.4rem 0.7rem; min-height:60px;" placeholder="Option A\\nOption B\\nOption C">\${escapeHtml(optionsStr)}</textarea>
     <label class="form-checkbox-group" style="margin:0; white-space:nowrap;">
      <input type="checkbox" class="form-checkbox field-allow-other" \${f.allowOther ? 'checked' : ''} />
      <span style="font-size: 0.82rem; font-weight:600;">Allow "Other" write-in option</span>
@@ -835,7 +835,7 @@ async function saveApp() {
   if (type === 'select' || type === 'radio') {
    const optionsEl = row.querySelector('.field-options');
    const allowOtherEl = row.querySelector('.field-allow-other');
-   field.options = (optionsEl?.value || '').split(',').map(s => s.trim()).filter(Boolean);
+   field.options = (optionsEl?.value || '').split('\n').map(s => s.trim()).filter(Boolean);
    field.allowOther = allowOtherEl?.checked || false;
   }
   fields.push(field);
@@ -1367,8 +1367,8 @@ function openLiveTestModal(appName) {
  const submitBtn = document.querySelector('#test-form button[type="submit"]');
  if (submitBtn) {
   submitBtn.innerHTML = btnText;
-  submitBtn.style.backgroundColor = themeColor;
-  submitBtn.style.borderColor = themeColor;
+  submitBtn.style.backgroundColor = '#' + themeColor.replace('#', '');
+  submitBtn.style.borderColor = '#' + themeColor.replace('#', '');
  }
  openModal('live-test-modal');
 }

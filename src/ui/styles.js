@@ -870,12 +870,14 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  pointer-events: none;
 }
 .toast {
   padding: 1rem 1.5rem;
   border-radius: var(--radius-md);
   background: #1e293b;
   color: #f8fafc;
+  pointer-events: auto;
   font-weight: 500;
   font-size: 0.92rem;
   box-shadow: var(--shadow-lg);
