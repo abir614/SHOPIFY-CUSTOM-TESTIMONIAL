@@ -14,6 +14,7 @@ for (const key of REQUIRED_ENV) {
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || "0.0.0.0";
 const app = express();
+app.set("trust proxy", 1);
 app.use(helmet());
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
