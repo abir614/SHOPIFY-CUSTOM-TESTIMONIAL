@@ -5,6 +5,8 @@ import { handleLogin } from "./routes/login.js";
 import { handleListApps, handleCreateApp, handleGetApp, handleUpdateApp, handleDeleteApp } from "./routes/apps.js";
 import { handleListSubmissions, handleGetSubmission } from "./routes/submissions.js";
 import { handleSubmit, findApp } from "./routes/submit.js";
+import { handleListApiKeys, handleCreateApiKey, handleDeleteApiKey } from "./routes/apikeys.js";
+import { handleApiGateway } from "./routes/apigateway.js";
 import { renderUI } from "./ui/html.js";
 
 const DASHBOARD_PREFIXES = [
@@ -12,6 +14,7 @@ const DASHBOARD_PREFIXES = [
   "/api/login",
   "/api/me",
   "/api/apps",
+  "/api/apikeys",
 ];
 
 function isDashboardPath(path) {
@@ -53,6 +56,13 @@ async function handleDashboardApi(request, path, dashboardHeaders) {
     return handleGetSubmission(request, auth, decodeURIComponent(submissionMatch[1]), decodeURIComponent(submissionMatch[2]), dashboardHeaders);
   }
 
+  // API key management endpoints
+  if (path === "/api/apikeys" && method === "GET") return handleListApiKeys(request, auth, dashboardHeaders);
+  if (path === "/api/apikeys" && method === "POST") return handleCreateApiKey(request, auth, dashboardHeaders);
+
+  const apikeyMatch = path.match(/^\/api\/apikeys\/([^/]+)$/);
+  if (apikeyMatch && method === "DELETE") return handleDeleteApiKey(request, auth, apikeyMatch[1], dashboardHeaders);
+
   return jsonResponse({ error: "Not found" }, 404, dashboardHeaders);
 }
 
@@ -84,6 +94,14 @@ export async function handleRequest(request) {
     }
 
     if (path === "/api" || path.startsWith("/api/")) {
+      // ── API Key Gateway: /api/fhk_xxx/... ─────────────────────────────
+      const gatewayMatch = path.match(/^\/api\/(fhk_[0-9a-f]{64})(\/.*)?$/i);
+      if (gatewayMatch) {
+        const rawKey = gatewayMatch[1];
+        const subPath = gatewayMatch[2] || "";
+        return await handleApiGateway(request, rawKey, subPath);
+      }
+
       if (isDashboardPath(path)) {
         const dashboardOrigins = process.env.DASHBOARD_ALLOWED_ORIGINS || "*";
         if (request.method === "OPTIONS") {
