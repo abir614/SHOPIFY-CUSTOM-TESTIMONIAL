@@ -127,6 +127,9 @@ export async function handleRequest(request) {
           { Allow: "POST, OPTIONS" }
         );
       }
+
+      // /api/* paths never render UI — always return JSON
+      return jsonResponse({ error: "Not found." }, 404);
     }
 
     if (request.method === "GET" && request.headers.get("Accept")?.includes("text/html")) {
@@ -134,6 +137,7 @@ export async function handleRequest(request) {
     }
 
     return jsonResponse({ error: "Not found" }, 404);
+
   } catch (err) {
     console.error("[unhandled]", err instanceof Error && err.stack ? err.stack : err);
     const msg = err instanceof Error ? err.message : String(err);
