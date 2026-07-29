@@ -65,8 +65,7 @@ function showToast(message, type = 'info') {
  toast.className = 'toast ' + type;
  toast.innerHTML = '<span>' + (type === 'success' ? '' : type === 'error' ? '' : '') + '</span><span>' + escapeHtml(message) + '</span>';
  document.getElementById('toast-container').appendChild(toast);
- 
- 
+
  setTimeout(() => {
   toast.style.opacity = '0';
   toast.style.transform = 'translateX(100%)';
@@ -298,6 +297,22 @@ async function renderDashboardView(container) {
    </div>
   </div>
 
+  <!-- App Bundles Section -->
+  <div style="margin-top: 3rem;">
+   <div class="section-header" style="margin-bottom:1.5rem;">
+    <div class="section-title-group">
+     <h2 style="font-size:1.45rem;">App Bundles</h2>
+     <p style="margin:0.25rem 0 0; color:var(--text-secondary); font-size:0.95rem;">Group multiple apps together and submit to all of them at once with a single API call.</p>
+    </div>
+    <button class="btn btn-primary" onclick="openCreateBundleModal()">Create Bundle</button>
+   </div>
+   <div id="bundles-grid-container" class="apps-grid">
+    <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--text-secondary);">
+     Loading your app bundles...
+    </div>
+   </div>
+  </div>
+
   <!-- API Keys Section -->
   <div style="margin-top: 3rem; max-width: 860px;">
    <div class="apikey-section-header">
@@ -317,6 +332,7 @@ async function renderDashboardView(container) {
  \`;
  
  await loadApps();
+ await loadBundles();
  await loadApiKeys();
 }
 
@@ -402,8 +418,7 @@ function renderAppsGrid(appsList) {
   \`;
 
  }).join('');
- 
- 
+
 }
 
 // --- App Manager Modal (Create / Edit) ---
@@ -417,7 +432,7 @@ function openCreateAppModal() {
  // Default general & theme identity
  document.getElementById('app-title-input').value = 'Share Your Story';
  document.getElementById('app-description-input').value = 'Please fill out your details below. We value your privacy.';
- document.getElementById('app-theme-color').value = '818cf8';
+ document.getElementById('app-theme-color').value = '#818cf8';
  document.getElementById('app-theme-hex').value = '818cf8';
  document.getElementById('app-submit-btn-input').value = 'Submit Form';
  document.getElementById('app-success-msg-input').value = 'Thank you! Your submission has been received.';
@@ -444,11 +459,12 @@ function openCreateAppModal() {
  // Default shopify
  document.getElementById('shopify-enabled').checked = false;
  document.getElementById('shopify-store-domain').value = '';
- document.getElementById('shopify-api-version').value = '2025-01';
+ document.getElementById('shopify-api-version').value = '2026-04';
  document.getElementById('shopify-admin-token').value = '';
  document.getElementById('shopify-metaobject-type').value = '';
  document.getElementById('shopify-image-field').value = 'photo';
  renderShopifyMappingTable({});
+ renderShopifyWrites([]);
  updateShopifyTabVisibility();
 
  switchAppModalTab('general');
@@ -458,8 +474,8 @@ function openCreateAppModal() {
 function setThemeSwatch(hex) {
  const col = document.getElementById('app-theme-color');
  const txt = document.getElementById('app-theme-hex');
- if (col) col.value = hex;
- if (txt) txt.value = hex;
+ if (col) col.value = '#' + hex.replace('#', '');
+ if (txt) txt.value = hex.replace('#', '');
 }
 
 function applyTemplatePreset(preset) {
@@ -554,8 +570,8 @@ async function openEditAppModal(appName) {
  const settings = app.settings || {};
  document.getElementById('app-title-input').value = settings.appTitle || app.appName;
  document.getElementById('app-description-input').value = settings.appDescription || '';
- document.getElementById('app-theme-color').value = settings.themeColor || '818cf8';
- document.getElementById('app-theme-hex').value = settings.themeColor || '818cf8';
+ document.getElementById('app-theme-color').value = settings.themeColor?.startsWith('#') ? settings.themeColor : '#' + (settings.themeColor || '818cf8');
+ document.getElementById('app-theme-hex').value = settings.themeColor?.startsWith('#') ? settings.themeColor.slice(1) : (settings.themeColor || '818cf8');
  document.getElementById('app-submit-btn-input').value = settings.submitBtnText || 'Submit Form';
  document.getElementById('app-success-msg-input').value = settings.successMessage || 'Thank you! Your submission has been received.';
  document.getElementById('app-redirect-url-input').value = settings.redirectUrl || '';
@@ -568,17 +584,17 @@ async function openEditAppModal(appName) {
  document.getElementById('setting-max-file-mb').value = Math.round((settings.maxFileBytes || 10485760) / (1024 * 1024));
  document.getElementById('setting-max-fields').value = settings.maxFormFields || 40;
  document.getElementById('setting-turnstile-enabled').checked = settings.turnstile?.enabled || false;
- document.getElementById('setting-turnstile-secret').value = '';
+ document.getElementById('setting-turnstile-secret').value = settings.turnstile?.secretKey || '';
 
  const shopify = settings.shopify || {};
  document.getElementById('shopify-enabled').checked = shopify.enabled || false;
  document.getElementById('shopify-store-domain').value = shopify.storeDomain || '';
- document.getElementById('shopify-api-version').value = shopify.apiVersion || '2025-01';
- document.getElementById('shopify-admin-token').value = '';
+ document.getElementById('shopify-api-version').value = shopify.apiVersion || '2026-04';
+ document.getElementById('shopify-admin-token').value = shopify.adminAccessToken || '';
  document.getElementById('shopify-metaobject-type').value = shopify.metaobjectType || '';
  document.getElementById('shopify-image-field').value = shopify.imageFieldKey || '';
- document.getElementById('shopify-dual-write').checked = shopify.dualWrite || false;
  renderShopifyMappingTable(shopify.fieldMapping || {});
+ renderShopifyWrites(shopify.writes || []);
  updateShopifyTabVisibility();
 
  switchAppModalTab('general');
@@ -934,7 +950,7 @@ async function saveApp() {
  // Collect shopify settings
  const shopifyEnabled = document.getElementById('shopify-enabled').checked;
  const shopifyStoreDomain = document.getElementById('shopify-store-domain').value.trim();
- const shopifyApiVersion = document.getElementById('shopify-api-version').value.trim() || '2025-01';
+ const shopifyApiVersion = document.getElementById('shopify-api-version').value.trim() || '2026-04';
  const shopifyAdminToken = document.getElementById('shopify-admin-token').value.trim();
  const shopifyMetaobjectType = document.getElementById('shopify-metaobject-type').value.trim();
  const shopifyImageField = document.getElementById('shopify-image-field').value.trim();
@@ -976,6 +992,51 @@ async function saveApp() {
    switchAppModalTab('shopify');
    return;
   }
+  const writes = [];
+  document.querySelectorAll('.shopify-write-item').forEach(writeEl => {
+   const metaobjectType = writeEl.querySelector('.write-mo-type').value.trim();
+   if (!metaobjectType) return;
+   
+   const w = {
+    metaobjectType,
+    imageFieldKey: writeEl.querySelector('.write-image-key').value.trim(),
+    fieldMapping: {},
+    condition: null,
+    additionalConditions: []
+   };
+
+   // main condition
+   const cField = writeEl.querySelector('.write-cond-field').value.trim();
+   const cOp = writeEl.querySelector('.write-cond-op').value;
+   const cVal = writeEl.querySelector('.write-cond-val').value.trim();
+   if (cField) {
+    w.condition = { field: cField, operator: cOp, value: cVal };
+   } else {
+    w.condition = { field: '', operator: 'always', value: '' };
+   }
+
+   // additional conditions
+   writeEl.querySelectorAll('.additional-cond-row').forEach(cRow => {
+    const acField = cRow.querySelector('.write-cond-field').value.trim();
+    if (acField) {
+     w.additionalConditions.push({
+      field: acField,
+      operator: cRow.querySelector('.write-cond-op').value,
+      value: cRow.querySelector('.write-cond-val').value.trim()
+     });
+    }
+   });
+
+   // custom mapping
+   writeEl.querySelectorAll('.write-mapping-row').forEach(mRow => {
+    const appKey = mRow.querySelector('.write-mapping-app-key').value.trim();
+    const shopKey = mRow.querySelector('.write-mapping-shop-key').value.trim();
+    if (appKey && shopKey) w.fieldMapping[appKey] = shopKey;
+   });
+
+   writes.push(w);
+  });
+
   settings.shopify = {
    enabled: true,
    storeDomain: shopifyStoreDomain,
@@ -983,7 +1044,7 @@ async function saveApp() {
    metaobjectType: shopifyMetaobjectType,
    imageFieldKey: shopifyImageField,
    fieldMapping,
-   dualWrite: document.getElementById('shopify-dual-write')?.checked || false,
+   writes,
   };
   if (shopifyAdminToken) {
    settings.shopify.adminAccessToken = shopifyAdminToken;
@@ -1881,5 +1942,252 @@ function copyApiKeyValue() {
  }).catch(() => {
   showToast('Copy failed — please select and copy manually.', 'error');
  });
+}
+
+// --- Universal Conditional Writes UI Logic ---
+function renderShopifyWrites(writesList) {
+ const container = document.getElementById('shopify-writes-list');
+ if (!container) return;
+ container.innerHTML = '';
+ if (Array.isArray(writesList)) {
+  writesList.forEach(w => container.appendChild(buildShopifyWriteEl(w)));
+ }
+}
+window.renderShopifyWrites = renderShopifyWrites;
+
+function addShopifyWrite() {
+ const container = document.getElementById('shopify-writes-list');
+ if (container) container.appendChild(buildShopifyWriteEl({}));
+}
+window.addShopifyWrite = addShopifyWrite;
+
+function buildShopifyWriteEl(w = {}) {
+ const div = document.createElement('div');
+ div.className = 'shopify-write-item';
+ div.style.cssText = 'background:rgba(0,0,0,0.15); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:1rem; display:flex; flex-direction:column; gap:0.75rem; position:relative;';
+ 
+ const cOp = w.condition?.operator || 'always';
+ 
+ div.innerHTML = \`
+  <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.shopify-write-item').remove()" style="position:absolute; top:1rem; right:1rem;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; padding-right:2rem;">
+   <div class="form-group" style="margin:0;">
+    <label class="form-label">Metaobject Type Handle <span style="color:var(--danger-color)">*</span></label>
+    <input type="text" class="form-input write-mo-type" placeholder="e.g. testimonial" value="\${escapeHtml(w.metaobjectType || '')}" />
+   </div>
+   <div class="form-group" style="margin:0;">
+    <label class="form-label">Image Field Key</label>
+    <input type="text" class="form-input write-image-key" placeholder="e.g. photo" value="\${escapeHtml(w.imageFieldKey || '')}" />
+   </div>
+  </div>
+  
+  <div style="background:rgba(255,255,255,0.03); padding:0.75rem; border-radius:var(--radius-sm);">
+   <label class="form-label" style="margin-bottom:0.4rem; font-size:0.85rem; color:#c7d2fe;">Primary Condition</label>
+   <div style="display:flex; gap:0.5rem; align-items:center;">
+    <input type="text" class="form-input write-cond-field" placeholder="Form Field (e.g. share)" value="\${escapeHtml(w.condition?.field || '')}" style="width:30%; font-size:0.85rem;" />
+    <select class="form-select write-cond-op" style="width:25%; font-size:0.85rem;">
+     <option value="always" \${cOp === 'always' ? 'selected' : ''}>Always (No Cond)</option>
+     <option value="contains" \${cOp === 'contains' ? 'selected' : ''}>Contains</option>
+     <option value="not_contains" \${cOp === 'not_contains' ? 'selected' : ''}>Not Contains</option>
+     <option value="equals" \${cOp === 'equals' ? 'selected' : ''}>Equals</option>
+     <option value="not_equals" \${cOp === 'not_equals' ? 'selected' : ''}>Not Equals</option>
+     <option value="not_empty" \${cOp === 'not_empty' ? 'selected' : ''}>Not Empty</option>
+    </select>
+    <input type="text" class="form-input write-cond-val" placeholder="Value (e.g. yes)" value="\${escapeHtml(w.condition?.value || '')}" style="width:45%; font-size:0.85rem;" />
+   </div>
+   
+   <!-- Additional conditions -->
+   <div class="additional-conds-list" style="margin-top:0.5rem; display:flex; flex-direction:column; gap:0.5rem;">
+    \${(w.additionalConditions || []).map(ac => buildWriteCondRowHtml(ac)).join('')}
+   </div>
+   <button type="button" class="btn btn-secondary btn-sm" onclick="this.previousElementSibling.insertAdjacentHTML('beforeend', buildWriteCondRowHtml())" style="margin-top:0.5rem; font-size:0.75rem; padding:0.2rem 0.5rem;">+ AND Condition</button>
+  </div>
+
+  <div style="background:rgba(255,255,255,0.03); padding:0.75rem; border-radius:var(--radius-sm);">
+   <label class="form-label" style="margin-bottom:0.4rem; font-size:0.85rem; color:#c7d2fe;">Custom Mapping (Optional)</label>
+   <div class="write-mapping-list" style="display:flex; flex-direction:column; gap:0.5rem;">
+    \${Object.entries(w.fieldMapping || {}).map(([appKey, shopKey]) => buildWriteMappingRowHtml(appKey, shopKey)).join('')}
+   </div>
+   <button type="button" class="btn btn-secondary btn-sm" onclick="this.previousElementSibling.insertAdjacentHTML('beforeend', buildWriteMappingRowHtml())" style="margin-top:0.5rem; font-size:0.75rem; padding:0.2rem 0.5rem;">+ Add Map</button>
+  </div>
+ \`;
+ return div;
+}
+
+window.buildWriteCondRowHtml = function(cond = {}) {
+ const op = cond.operator || 'equals';
+ return \`
+  <div class="additional-cond-row" style="display:flex; gap:0.5rem; align-items:center;">
+   <span style="font-size:0.7rem; font-weight:700; color:var(--text-secondary);">AND</span>
+   <input type="text" class="form-input write-cond-field" placeholder="Field" value="\${escapeHtml(cond.field || '')}" style="width:28%; font-size:0.85rem; padding:0.25rem 0.5rem;" />
+   <select class="form-select write-cond-op" style="width:23%; font-size:0.85rem; padding:0.25rem 0.5rem;">
+    <option value="contains" \${op === 'contains' ? 'selected' : ''}>Contains</option>
+    <option value="not_contains" \${op === 'not_contains' ? 'selected' : ''}>Not Contains</option>
+    <option value="equals" \${op === 'equals' ? 'selected' : ''}>Equals</option>
+    <option value="not_equals" \${op === 'not_equals' ? 'selected' : ''}>Not Equals</option>
+    <option value="not_empty" \${op === 'not_empty' ? 'selected' : ''}>Not Empty</option>
+   </select>
+   <input type="text" class="form-input write-cond-val" placeholder="Value" value="\${escapeHtml(cond.value || '')}" style="width:38%; font-size:0.85rem; padding:0.25rem 0.5rem;" />
+   <button type="button" class="btn btn-secondary btn-sm" onclick="this.closest('.additional-cond-row').remove()" style="padding:0.25rem 0.4rem;">X</button>
+  </div>
+ \`;
+}
+
+window.buildWriteMappingRowHtml = function(appKey = '', shopKey = '') {
+ return \`
+  <div class="write-mapping-row" style="display:flex; gap:0.5rem; align-items:center;">
+   <input type="text" class="form-input write-mapping-app-key" placeholder="Form Field" value="\${escapeHtml(appKey)}" style="font-size:0.85rem; padding:0.25rem 0.5rem;" />
+   <span style="color:var(--text-secondary);">→</span>
+   <input type="text" class="form-input write-mapping-shop-key" placeholder="Shopify Key" value="\${escapeHtml(shopKey)}" style="font-size:0.85rem; padding:0.25rem 0.5rem;" />
+   <button type="button" class="btn btn-secondary btn-sm" onclick="this.closest('.write-mapping-row').remove()" style="padding:0.25rem 0.4rem;">X</button>
+  </div>
+ \`;
+}
+
+// --- App Bundles UI Logic ---
+async function loadBundles() {
+ const container = document.getElementById('bundles-grid-container');
+ if (!container) return;
+ try {
+  const res = await fetch('/api/bundles', { headers: { 'Authorization': 'Bearer ' + state.token } });
+  const data = await res.json();
+  if (data.ok) {
+   state.bundles = data.bundles || [];
+   renderBundlesGrid(state.bundles);
+  }
+ } catch (e) {
+  console.error("Failed to load bundles", e);
+ }
+}
+window.loadBundles = loadBundles;
+
+function renderBundlesGrid(bundles) {
+ const container = document.getElementById('bundles-grid-container');
+ if (!container) return;
+ if (!bundles || bundles.length === 0) {
+  container.innerHTML = \`
+   <div class="empty-state" style="grid-column: 1 / -1; min-height:150px; padding: 2rem;">
+    <h3 style="font-size:1.1rem; margin-bottom:0.5rem;">No Bundles Created</h3>
+    <p style="font-size:0.9rem;">Combine multiple form schemas into one master endpoint.</p>
+   </div>
+  \`;
+  return;
+ }
+
+ container.innerHTML = bundles.map(b => {
+  return \`
+   <div class="app-card" style="border-left: 3px solid #f59e0b;">
+    <div class="app-card-header">
+     <div>
+      <h3 class="app-card-title">\${escapeHtml(b.displayName || b.bundleName)}</h3>
+      <span class="app-card-slug">\${escapeHtml('/api/' + state.user.username + '/' + b.bundleName)}</span>
+     </div>
+     <button class="btn btn-danger btn-sm" onclick="deleteBundle('\${escapeHtml(b.bundleName)}')">Delete</button>
+    </div>
+    <div class="app-card-meta" style="margin-top: 1rem; color:var(--text-secondary); font-size:0.85rem;">
+     Linked Apps: <strong style="color:var(--text-primary);">\${(b.linkedApps||[]).join(', ')}</strong>
+    </div>
+    <div class="app-card-footer" style="margin-top:1rem;">
+     <button class="btn btn-secondary btn-sm" onclick="openEditBundleModal('\${escapeHtml(b.bundleName)}')">Manage Bundle</button>
+    </div>
+   </div>
+  \`;
+ }).join('');
+}
+
+window.openCreateBundleModal = function() {
+ state.editingBundle = null;
+ document.getElementById('bundle-modal-title').innerText = 'Create App Bundle';
+ document.getElementById('bundle-name-input').value = '';
+ document.getElementById('bundle-name-input').disabled = false;
+ document.getElementById('bundle-display-input').value = '';
+ document.getElementById('bundle-success-msg').value = '';
+ document.getElementById('bundle-redirect-url').value = '';
+ document.getElementById('bundle-origins').value = '*';
+ 
+ populateBundleAppsSelect([]);
+ openModal('bundle-editor-modal');
+}
+
+window.openEditBundleModal = function(bundleName) {
+ const b = state.bundles.find(x => x.bundleName === bundleName);
+ if (!b) return;
+ state.editingBundle = b;
+ document.getElementById('bundle-modal-title').innerText = 'Manage Bundle: ' + b.bundleName;
+ document.getElementById('bundle-name-input').value = b.bundleName;
+ document.getElementById('bundle-name-input').disabled = true;
+ document.getElementById('bundle-display-input').value = b.displayName || '';
+ document.getElementById('bundle-success-msg').value = b.settings?.successMessage || '';
+ document.getElementById('bundle-redirect-url').value = b.settings?.redirectUrl || '';
+ document.getElementById('bundle-origins').value = (b.settings?.allowedOrigins || ['*']).join(', ');
+ 
+ populateBundleAppsSelect(b.linkedApps || []);
+ openModal('bundle-editor-modal');
+}
+
+function populateBundleAppsSelect(selectedApps = []) {
+ const select = document.getElementById('bundle-apps-select');
+ if (!select) return;
+ select.innerHTML = state.apps.map(a => \`
+  <option value="\${escapeHtml(a.appName)}" \${selectedApps.includes(a.appName) ? 'selected' : ''}>
+   \${escapeHtml(a.appName)}
+  </option>
+ \`).join('');
+}
+
+window.saveBundle = async function() {
+ const bundleName = document.getElementById('bundle-name-input').value.trim();
+ const displayName = document.getElementById('bundle-display-input').value.trim();
+ const opts = document.getElementById('bundle-apps-select').selectedOptions;
+ const linkedApps = Array.from(opts).map(o => o.value);
+ 
+ if (!bundleName) { showToast('Bundle name is required.', 'error'); return; }
+ if (linkedApps.length === 0) { showToast('Select at least one app to link.', 'error'); return; }
+
+ const settings = {
+  successMessage: document.getElementById('bundle-success-msg').value.trim(),
+  redirectUrl: document.getElementById('bundle-redirect-url').value.trim(),
+  allowedOrigins: document.getElementById('bundle-origins').value.split(',').map(s=>s.trim()).filter(Boolean)
+ };
+
+ try {
+  const url = state.editingBundle ? '/api/bundles/' + encodeURIComponent(bundleName) : '/api/bundles';
+  const method = state.editingBundle ? 'PUT' : 'POST';
+
+  const res = await fetch(url, {
+   method,
+   headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + state.token },
+   body: JSON.stringify({ bundleName, displayName, linkedApps, settings })
+  });
+  const data = await res.json();
+  if (data.ok) {
+   showToast('Bundle saved successfully!', 'success');
+   closeModal('bundle-editor-modal');
+   await loadBundles();
+  } else {
+   showToast(data.error || 'Failed to save bundle.', 'error');
+  }
+ } catch (e) {
+  showToast('Network error saving bundle.', 'error');
+ }
+}
+
+window.deleteBundle = async function(bundleName) {
+ if (!confirm('Delete bundle "' + bundleName + '"?')) return;
+ try {
+  const res = await fetch('/api/bundles/' + encodeURIComponent(bundleName), {
+   method: 'DELETE',
+   headers: { 'Authorization': 'Bearer ' + state.token }
+  });
+  const data = await res.json();
+  if (data.ok) {
+   showToast('Bundle deleted.', 'success');
+   await loadBundles();
+  } else {
+   showToast(data.error || 'Failed to delete bundle.', 'error');
+  }
+ } catch (e) {
+  showToast('Network error deleting bundle.', 'error');
+ }
 }
 `;

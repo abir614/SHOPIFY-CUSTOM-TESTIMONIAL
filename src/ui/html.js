@@ -174,8 +174,8 @@ export function renderUI(request) {
       <div class="form-group">
        <label class="form-label">Brand Accent Color (Theme)</label>
        <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.3rem;">
-        <input type="color" id="app-theme-color" value="818cf8" style="width:42px; height:38px; border:none; background:none; cursor:pointer;" onchange="document.getElementById('app-theme-hex').value = this.value" />
-        <input type="text" id="app-theme-hex" class="form-input" value="818cf8" style="width:110px;" oninput="if(/^[0-9A-Fa-f]{6}$/.test(this.value)) document.getElementById('app-theme-color').value = this.value" />
+        <input type="color" id="app-theme-color" value="#818cf8" style="width:42px; height:38px; border:none; background:none; cursor:pointer;" onchange="document.getElementById('app-theme-hex').value = this.value.replace('#', '')" />
+        <input type="text" id="app-theme-hex" class="form-input" value="818cf8" style="width:110px;" oninput="if(/^[0-9A-Fa-f]{6}$/.test(this.value)) document.getElementById('app-theme-color').value = '#' + this.value" />
         <div style="display:flex; gap:0.4rem; margin-left:auto;">
          <span onclick="setThemeSwatch('818cf8')" style="width:22px; height:22px; border-radius:50%; background:#818cf8; cursor:pointer; display:inline-block;" title="Indigo"></span>
          <span onclick="setThemeSwatch('10b981')" style="width:22px; height:22px; border-radius:50%; background:#10b981; cursor:pointer; display:inline-block;" title="Emerald"></span>
@@ -253,7 +253,7 @@ export function renderUI(request) {
        </div>
        <div class="form-group">
         <label class="form-label">Admin API Version</label>
-        <input type="text" id="shopify-api-version" class="form-input" value="2025-01" placeholder="2025-01" />
+        <input type="text" id="shopify-api-version" class="form-input" value="2026-04" placeholder="2026-04" />
        </div>
       </div>
 
@@ -278,12 +278,15 @@ export function renderUI(request) {
        </div>
       </div>
 
-      <div class="form-group" style="display:flex;align-items:flex-start;gap:0.75rem;margin-top:0.5rem;">
-       <input type="checkbox" id="shopify-dual-write" style="width:16px;height:16px;margin-top:3px;accent-color:var(--accent);flex-shrink:0;">
-       <div>
-        <label class="form-label" for="shopify-dual-write" style="margin:0;cursor:pointer;">Enable Dual Write</label>
-        <span class="form-hint" style="display:block;margin-top:2px;">Also creates a <code>testimonial</code> or <code>pet_testimonial</code> metaobject when <code>permission_to_share</code> includes &ldquo;Yes&rdquo;</span>
+      <div style="margin-top:2rem; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.1);">
+       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+        <div>
+         <h4 style="margin:0; font-size:0.95rem; color:#fff;">Universal Conditional Writes</h4>
+         <p class="form-hint" style="margin:0.2rem 0 0 0;">Trigger additional Shopify writes based on form values.</p>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="addShopifyWrite()">+ Add Write</button>
        </div>
+       <div id="shopify-writes-list" style="display:flex; flex-direction:column; gap:1rem;"></div>
       </div>
 
       <div style="margin-top:1.5rem;">
@@ -393,11 +396,13 @@ export function renderUI(request) {
   </div>
  </div>
 
- <!-- 5. Submissions Viewer Modal -->
- <div id="submissions-modal" class="modal-overlay">
-  <div class="modal-container" style="max-width: 1000px;">
-   <div class="modal-header">
-    <h3 class="modal-title" id="submissions-modal-title">Collected Form Submissions</h3>
+  <!-- 5. Submissions Viewer Modal -->
+  <div id="submissions-modal" class="modal-overlay">
+   <div class="modal-container" style="max-width: 1000px;">
+    <div class="modal-header">
+     <h3 class="modal-title" id="submissions-modal-title">Collected Form Submissions</h3>
+     <button class="modal-close" onclick="closeModal('submissions-modal')"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+    </div>
     <div style="display:flex; gap:0.5rem; align-items:center;">
      <button class="btn btn-secondary btn-sm" onclick="exportSubmissionsCsv()">Export CSV</button>
      <button class="modal-close" onclick="closeModal('submissions-modal')"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
@@ -424,6 +429,55 @@ export function renderUI(request) {
    </div>
    <div class="modal-footer">
     <button type="button" class="btn btn-secondary" onclick="closeModal('submissions-modal')">Close</button>
+   </div>
+  </div>
+ </div>
+
+ <!-- 6. Bundle Editor Modal -->
+ <div id="bundle-editor-modal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 720px;">
+   <div class="modal-header">
+    <h3 class="modal-title" id="bundle-modal-title">Create App Bundle</h3>
+    <button class="modal-close" onclick="closeModal('bundle-editor-modal')"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+   </div>
+   <div class="modal-body">
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-bottom:1rem;">
+     <div class="form-group">
+      <label class="form-label">Bundle Name / Key <span style="color:var(--danger-color)">*</span></label>
+      <input type="text" id="bundle-name-input" class="form-input" placeholder="e.g. mega-promo" required />
+      <span class="form-hint">API endpoint: <code style="color:#818cf8">/api/:username/:bundle-name/</code></span>
+     </div>
+     <div class="form-group">
+      <label class="form-label">Display Name</label>
+      <input type="text" id="bundle-display-input" class="form-input" placeholder="e.g. Mega Promo" />
+     </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:1.5rem;">
+     <label class="form-label">Linked Apps <span style="color:var(--danger-color)">*</span></label>
+     <select id="bundle-apps-select" class="form-select" multiple size="4" style="height:auto;">
+      <!-- Populated by JS -->
+     </select>
+     <span class="form-hint">Hold Ctrl/Cmd to select multiple apps. Submitting to this bundle will execute all linked apps simultaneously.</span>
+    </div>
+
+    <h4 style="margin-bottom:0.75rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.5rem;">Bundle Overrides (Optional)</h4>
+    <div class="form-group">
+     <label class="form-label">Success Message</label>
+     <input type="text" id="bundle-success-msg" class="form-input" placeholder="Overrides app success message" />
+    </div>
+    <div class="form-group">
+     <label class="form-label">Redirect URL</label>
+     <input type="text" id="bundle-redirect-url" class="form-input" placeholder="Overrides app redirect URL" />
+    </div>
+    <div class="form-group">
+     <label class="form-label">Allowed CORS Origins</label>
+     <input type="text" id="bundle-origins" class="form-input" placeholder="*" value="*" />
+    </div>
+   </div>
+   <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" onclick="closeModal('bundle-editor-modal')">Cancel</button>
+    <button type="button" class="btn btn-primary" onclick="saveBundle()">Save Bundle</button>
    </div>
   </div>
  </div>
