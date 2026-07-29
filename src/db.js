@@ -37,8 +37,11 @@ async function ensureIndexes(database) {
     database.collection("users").createIndex({ email: 1 }, { unique: true }),
     database.collection("apps").createIndex({ ownerId: 1, appName: 1 }, { unique: true }),
     database.collection("submissions").createIndex({ appId: 1, createdAt: -1 }),
+    database.collection("submissions").createIndex({ bundleId: 1, createdAt: -1 }),
     database.collection("apikeys").createIndex({ key: 1 }, { unique: true }),
     database.collection("apikeys").createIndex({ userId: 1, createdAt: -1 }),
+    database.collection("bundles").createIndex({ ownerId: 1, bundleName: 1 }, { unique: true }),
+    database.collection("bundles").createIndex({ ownerUsername: 1, bundleName: 1 }, { unique: true }),
   ]);
 }
 
@@ -49,6 +52,7 @@ export function getCollections() {
     apps: database.collection("apps"),
     submissions: database.collection("submissions"),
     apikeys: database.collection("apikeys"),
+    bundles: database.collection("bundles"),
   };
 }
 

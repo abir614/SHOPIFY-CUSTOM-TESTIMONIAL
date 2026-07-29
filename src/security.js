@@ -104,7 +104,7 @@ export function clientIp(request) {
 
 export async function verifyPlatformTurnstile(token, ip) {
   const secret = process.env.PLATFORM_TURNSTILE_SECRET_KEY;
-  if (!secret) return true; // Fail open if no platform secret is configured
+  if (!secret) return true; 
   if (!token) return false;
 
   try {

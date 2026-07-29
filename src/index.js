@@ -4,8 +4,9 @@ import { handleRegister } from "./routes/register.js";
 import { handleLogin } from "./routes/login.js";
 import { handleListApps, handleCreateApp, handleGetApp, handleUpdateApp, handleDeleteApp } from "./routes/apps.js";
 import { handleListSubmissions, handleGetSubmission } from "./routes/submissions.js";
-import { handleSubmit, findApp } from "./routes/submit.js";
+import { handleSubmit, findApp, findBundle, handleBundleSubmit } from "./routes/submit.js";
 import { handleListApiKeys, handleCreateApiKey, handleDeleteApiKey } from "./routes/apikeys.js";
+import { handleListBundles, handleCreateBundle, handleDeleteBundle } from "./routes/bundles.js";
 import { handleApiGateway } from "./routes/apigateway.js";
 import { renderUI } from "./ui/html.js";
 
@@ -15,6 +16,7 @@ const DASHBOARD_PREFIXES = [
   "/api/me",
   "/api/apps",
   "/api/apikeys",
+  "/api/bundles",
 ];
 
 function isDashboardPath(path) {
@@ -56,12 +58,18 @@ async function handleDashboardApi(request, path, dashboardHeaders) {
     return handleGetSubmission(request, auth, decodeURIComponent(submissionMatch[1]), decodeURIComponent(submissionMatch[2]), dashboardHeaders);
   }
 
-  // API key management endpoints
   if (path === "/api/apikeys" && method === "GET") return handleListApiKeys(request, auth, dashboardHeaders);
   if (path === "/api/apikeys" && method === "POST") return handleCreateApiKey(request, auth, dashboardHeaders);
 
   const apikeyMatch = path.match(/^\/api\/apikeys\/([^/]+)$/);
   if (apikeyMatch && method === "DELETE") return handleDeleteApiKey(request, auth, apikeyMatch[1], dashboardHeaders);
+
+  if (path === "/api/bundles" && method === "GET") return handleListBundles(request, auth, dashboardHeaders);
+  if (path === "/api/bundles" && method === "POST") return handleCreateBundle(request, auth, dashboardHeaders);
+
+  const bundleMatch = path.match(/^\/api\/bundles\/([^/]+)$/);
+  if (bundleMatch && method === "DELETE") return handleDeleteBundle(request, auth, bundleMatch[1], dashboardHeaders);
+  if (bundleMatch && method === "PUT") return handleCreateBundle(request, auth, dashboardHeaders);
 
   return jsonResponse({ error: "Not found" }, 404, dashboardHeaders);
 }
@@ -94,7 +102,7 @@ export async function handleRequest(request) {
     }
 
     if (path === "/api" || path.startsWith("/api/")) {
-      // ── API Key Gateway: /api/fhk_xxx/... ─────────────────────────────
+      
       const gatewayMatch = path.match(/^\/api\/(abir_[0-9a-f]{64})(\/.*)?$/i);
       if (gatewayMatch) {
         const rawKey = gatewayMatch[1];
@@ -114,13 +122,33 @@ export async function handleRequest(request) {
 
       const formSegments = path.slice(4).split("/").filter(Boolean);
       if (formSegments.length === 2) {
-        const [username, appName] = formSegments;
-      if (request.method === "OPTIONS") {
-          const app = await findApp(username, appName);
-          const allowed = app ? app.settings.allowedOrigins : [];
+        const [username, name] = formSegments; 
+        
+        if (request.method === "OPTIONS") {
+          
+          let allowed = [];
+          const app = await findApp(username, name);
+          if (app) {
+            allowed = app.settings.allowedOrigins || [];
+          } else {
+            const bundle = await findBundle(username, name);
+            if (bundle) allowed = bundle.settings.allowedOrigins || [];
+          }
           return handlePreflight(request, allowed, "POST, OPTIONS");
         }
-        if (request.method === "POST") return await handleSubmit(request, username, appName, {});
+        
+        if (request.method === "POST") {
+          
+          const app = await findApp(username, name);
+          if (app) {
+            return await handleSubmit(request, username, name, {});
+          } else {
+            const bundle = await findBundle(username, name);
+            if (bundle) {
+              return await handleBundleSubmit(request, username, name, {});
+            }
+          }
+        }
         return jsonResponse(
           { error: "Method not allowed. Form endpoints only accept POST requests." },
           405,
@@ -128,7 +156,6 @@ export async function handleRequest(request) {
         );
       }
 
-      // /api/* paths never render UI — always return JSON
       return jsonResponse({ error: "Not found." }, 404);
     }
 
