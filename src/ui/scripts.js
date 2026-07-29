@@ -297,9 +297,27 @@ async function renderDashboardView(container) {
     Loading your form applications...
    </div>
   </div>
+
+  <!-- API Keys Section -->
+  <div style="margin-top: 3rem; max-width: 860px;">
+   <div class="apikey-section-header">
+    <div>
+     <h2 style="font-size:1.35rem; margin:0;">API Keys</h2>
+     <p style="margin:0.25rem 0 0; color:var(--text-secondary); font-size:0.9rem;">Create programmatic access keys. Requests go to <code style="color:#818cf8">/api/{API_KEY}/apps</code> and <code style="color:#818cf8">/api/{API_KEY}/apps/{app}/submissions</code>.</p>
+    </div>
+    <button class="btn btn-primary" onclick="openCreateApiKeyModal()">
+     <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:0.3rem"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+     New API Key
+    </button>
+   </div>
+   <div id="apikeys-list-container">
+    <div style="text-align:center; padding:2rem; color:var(--text-muted);">Loading API keys...</div>
+   </div>
+  </div>
  \`;
  
  await loadApps();
+ await loadApiKeys();
 }
 
 async function loadApps() {
@@ -1651,6 +1669,217 @@ function setupModalEvents() {
     el.classList.remove('open');
    }
   });
+ });
+}
+
+// ── API Key Management ───────────────────────────────────────────────────
+
+async function loadApiKeys() {
+ const container = document.getElementById('apikeys-list-container');
+ if (!container) return;
+ try {
+  const res = await fetch('/api/apikeys', {
+   headers: { 'Authorization': 'Bearer ' + state.token }
+  });
+  const data = await res.json();
+  if (!data.ok) {
+   container.innerHTML = '<div style="color:var(--danger-color);padding:1rem;">Failed to load API keys.</div>';
+   return;
+  }
+  renderApiKeysList(data.apikeys || [], container);
+ } catch (e) {
+  container.innerHTML = '<div style="color:var(--danger-color);padding:1rem;">Network error.</div>';
+ }
+}
+
+function renderApiKeysList(keys, container) {
+ if (!container) return;
+ const active = keys.filter(k => !k.revokedAt);
+ const revoked = keys.filter(k => k.revokedAt);
+
+ if (keys.length === 0) {
+  container.innerHTML = \`
+   <div style="text-align:center; padding:2.5rem; background:var(--bg-card); border:1px dashed var(--border-color); border-radius:var(--radius-md);">
+    <div style="font-size:2rem; margin-bottom:0.75rem;">🔑</div>
+    <p style="color:var(--text-muted); margin:0;">No API keys yet. Create one to start making programmatic requests.</p>
+   </div>
+  \`;
+  return;
+ }
+
+ const renderKey = (k) => {
+  const perms = k.permissions || {};
+  const actions = perms.actions || [];
+  const apps = perms.apps;
+  const lastUsed = k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleDateString() : 'Never';
+  const created = k.createdAt ? new Date(k.createdAt).toLocaleDateString() : '';
+  const isRevoked = !!k.revokedAt;
+  return \`
+   <div class="apikey-card \${isRevoked ? 'revoked' : ''}">
+    <div class="apikey-info">
+     <div class="apikey-name">\${escapeHtml(k.name)}</div>
+     <div class="apikey-hint">\${escapeHtml(k.keyHint || '')}</div>
+     <div class="apikey-meta">Created: \${created} &nbsp;·&nbsp; Last used: \${lastUsed}</div>
+    </div>
+    <div class="apikey-permissions">
+     \${actions.includes('read') ? '<span class="perm-badge perm-badge-read">📖 Read</span>' : ''}
+     \${actions.includes('submit') ? '<span class="perm-badge perm-badge-submit">✉ Submit</span>' : ''}
+     <span class="perm-badge perm-badge-scope">\${apps === '*' ? '★ All Apps' : (Array.isArray(apps) ? apps.length + ' app(s)' : '')}</span>
+     \${isRevoked ? '<span class="perm-badge perm-badge-revoked">Revoked</span>' : ''}
+    </div>
+    \${!isRevoked ? \`
+     <button class="btn btn-secondary btn-sm" style="color:var(--danger-color); border-color:var(--danger-color);" onclick="revokeApiKey('\${escapeHtml(k.id)}', this)">
+      Revoke
+     </button>
+    \` : ''}
+   </div>
+  \`;
+ };
+
+ container.innerHTML = \`
+  <div class="apikey-list">
+   \${active.map(renderKey).join('')}
+   \${revoked.length > 0 ? \`
+    <details style="margin-top:0.5rem;">
+     <summary style="cursor:pointer; color:var(--text-muted); font-size:0.85rem; padding:0.4rem 0;">Show revoked keys (\${revoked.length})</summary>
+     <div class="apikey-list" style="margin-top:0.5rem;">\${revoked.map(renderKey).join('')}</div>
+    </details>
+   \` : ''}
+  </div>
+ \`;
+}
+
+async function revokeApiKey(id, btn) {
+ if (!confirm('Revoke this API key? All requests using it will immediately fail.')) return;
+ btn.disabled = true;
+ btn.textContent = 'Revoking...';
+ try {
+  const res = await fetch('/api/apikeys/' + id, {
+   method: 'DELETE',
+   headers: { 'Authorization': 'Bearer ' + state.token }
+  });
+  const data = await res.json();
+  if (data.ok) {
+   showToast('API key revoked successfully.', 'success');
+   await loadApiKeys();
+  } else {
+   showToast(data.error || 'Failed to revoke key.', 'error');
+   btn.disabled = false;
+   btn.textContent = 'Revoke';
+  }
+ } catch (e) {
+  showToast('Network error.', 'error');
+  btn.disabled = false;
+  btn.textContent = 'Revoke';
+ }
+}
+
+function openCreateApiKeyModal() {
+ // Reset form to creation state
+ document.getElementById('apikey-reveal-area').style.display = 'none';
+ document.getElementById('apikey-create-form').style.display = '';
+ document.getElementById('apikey-create-error').style.display = 'none';
+ document.getElementById('apikey-name-input').value = '';
+ document.getElementById('perm-read').checked = true;
+ document.getElementById('perm-submit').checked = true;
+ document.getElementById('scope-all').checked = true;
+ document.getElementById('apikey-app-list-container').style.display = 'none';
+
+ // Populate app checkboxes with current apps list
+ const checkboxContainer = document.getElementById('apikey-app-checkboxes');
+ if (checkboxContainer) {
+  if (state.apps && state.apps.length > 0) {
+   checkboxContainer.innerHTML = state.apps.map(app => \`
+    <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; padding:0.3rem 0;">
+     <input type="checkbox" name="apikey-app" value="\${escapeHtml(app.appName)}" style="accent-color:var(--accent-color);" />
+     <span style="font-size:0.88rem;">\${escapeHtml(app.appName)}</span>
+     \${app.settings?.appTitle ? \`<span style="color:var(--text-muted); font-size:0.78rem;">— \${escapeHtml(app.settings.appTitle)}</span>\` : ''}
+    </label>
+   \`).join('');
+  } else {
+   checkboxContainer.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem; margin:0;">No apps found. Create an app first.</p>';
+  }
+ }
+
+ openModal('apikey-create-modal');
+}
+
+function toggleApikeyAppList() {
+ const isSpecific = document.getElementById('scope-specific').checked;
+ document.getElementById('apikey-app-list-container').style.display = isSpecific ? '' : 'none';
+}
+
+async function submitCreateApiKey() {
+ const errEl = document.getElementById('apikey-create-error');
+ errEl.style.display = 'none';
+
+ const name = document.getElementById('apikey-name-input').value.trim();
+ if (!name) {
+  errEl.textContent = 'Please provide a name for this key.';
+  errEl.style.display = '';
+  return;
+ }
+
+ const actions = [];
+ if (document.getElementById('perm-read').checked) actions.push('read');
+ if (document.getElementById('perm-submit').checked) actions.push('submit');
+ if (actions.length === 0) {
+  errEl.textContent = 'Select at least one permission (Read or Submit).';
+  errEl.style.display = '';
+  return;
+ }
+
+ let apps = '*';
+ if (document.getElementById('scope-specific').checked) {
+  const checked = Array.from(document.querySelectorAll('#apikey-app-checkboxes input[name="apikey-app"]:checked')).map(el => el.value);
+  if (checked.length === 0) {
+   errEl.textContent = 'Select at least one app, or switch scope to "All my apps".';
+   errEl.style.display = '';
+   return;
+  }
+  apps = checked;
+ }
+
+ const btn = document.querySelector('#apikey-create-modal #apikey-create-form .btn-primary');
+ if (btn) { btn.disabled = true; btn.textContent = 'Generating...'; }
+
+ try {
+  const res = await fetch('/api/apikeys', {
+   method: 'POST',
+   headers: {
+    'Authorization': 'Bearer ' + state.token,
+    'Content-Type': 'application/json'
+   },
+   body: JSON.stringify({ name, permissions: { actions, apps } })
+  });
+  const data = await res.json();
+
+  if (!data.ok || !data.apikey) {
+   errEl.textContent = data.error || 'Failed to create API key.';
+   errEl.style.display = '';
+   if (btn) { btn.disabled = false; btn.textContent = 'Generate Key'; }
+   return;
+  }
+
+  // Show reveal area
+  document.getElementById('apikey-reveal-value').textContent = data.apikey.key;
+  document.getElementById('apikey-create-form').style.display = 'none';
+  document.getElementById('apikey-reveal-area').style.display = '';
+  showToast('API key created! Copy it now — it will not be shown again.', 'success');
+ } catch (e) {
+  errEl.textContent = 'Network error. Please try again.';
+  errEl.style.display = '';
+  if (btn) { btn.disabled = false; btn.textContent = 'Generate Key'; }
+ }
+}
+
+function copyApiKeyValue() {
+ const val = document.getElementById('apikey-reveal-value').textContent;
+ if (!val) return;
+ navigator.clipboard.writeText(val).then(() => {
+  showToast('API key copied to clipboard!', 'success');
+ }).catch(() => {
+  showToast('Copy failed — please select and copy manually.', 'error');
  });
 }
 `;

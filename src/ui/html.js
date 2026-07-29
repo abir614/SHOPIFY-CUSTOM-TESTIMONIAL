@@ -467,9 +467,92 @@ export function renderUI(request) {
   </div>
  </div>
 
+ <!-- 8. Create API Key Modal -->
+ <div id="apikey-create-modal" class="modal-overlay">
+  <div class="modal-container" style="max-width: 520px;">
+   <div class="modal-header">
+    <h3 class="modal-title">Create API Key</h3>
+    <button class="modal-close" onclick="closeModal('apikey-create-modal')"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+   </div>
+   <div class="modal-body">
+    <div id="apikey-create-error" style="display:none; padding:0.75rem; background:var(--danger-bg); color:var(--danger-color); border-radius:var(--radius-sm); font-size:0.85rem; margin-bottom:1rem;"></div>
+
+    <!-- Key reveal area (shown after creation) -->
+    <div id="apikey-reveal-area" style="display:none;">
+     <div class="apikey-reveal-box">
+      <div class="apikey-reveal-label">🔑 Your new API Key — copy it now!</div>
+      <div class="apikey-reveal-value" id="apikey-reveal-value"></div>
+      <button class="btn btn-primary btn-sm" style="width:100%; margin-bottom:0.75rem;" onclick="copyApiKeyValue()">Copy API Key</button>
+      <div class="apikey-reveal-warning">
+       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+       This key will <strong>never be shown again</strong>. Store it somewhere safe.
+      </div>
+     </div>
+     <div class="modal-footer" style="margin-top:1rem;">
+      <button type="button" class="btn btn-secondary" onclick="closeModal('apikey-create-modal'); loadApiKeys();">Done</button>
+     </div>
+    </div>
+
+    <!-- Creation form -->
+    <div id="apikey-create-form">
+     <div class="form-group">
+      <label class="form-label">Key Name <span style="color:var(--danger-color)">*</span></label>
+      <input type="text" id="apikey-name-input" class="form-input" placeholder="e.g. Zapier Integration, Read-only Analytics" maxlength="100" />
+      <span class="form-hint">A friendly label to identify this key in your dashboard.</span>
+     </div>
+
+     <div class="form-group" style="margin-top:1.25rem;">
+      <label class="form-label">Permissions</label>
+      <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:0.5rem;">
+       <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; padding:0.6rem 0.9rem; background:rgba(56,189,248,0.07); border:1px solid rgba(56,189,248,0.25); border-radius:var(--radius-sm);">
+        <input type="checkbox" id="perm-read" checked style="accent-color:#38bdf8; width:16px; height:16px;" />
+        <span style="font-size:0.88rem; color:#38bdf8; font-weight:600;">Read</span>
+        <span style="font-size:0.75rem; color:var(--text-muted);">— GET apps & submissions</span>
+       </label>
+       <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; padding:0.6rem 0.9rem; background:rgba(52,211,153,0.07); border:1px solid rgba(52,211,153,0.25); border-radius:var(--radius-sm);">
+        <input type="checkbox" id="perm-submit" checked style="accent-color:#34d399; width:16px; height:16px;" />
+        <span style="font-size:0.88rem; color:#34d399; font-weight:600;">Submit</span>
+        <span style="font-size:0.75rem; color:var(--text-muted);">— POST form submissions</span>
+       </label>
+      </div>
+     </div>
+
+     <div class="form-group" style="margin-top:1.25rem;">
+      <label class="form-label">App Scope</label>
+      <div style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.5rem;">
+       <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+        <input type="radio" name="apikey-scope" id="scope-all" value="*" checked style="accent-color:var(--accent-color);" onchange="toggleApikeyAppList()" />
+        <span style="font-size:0.88rem; color:var(--text-primary);">All my apps (wildcard)</span>
+       </label>
+       <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+        <input type="radio" name="apikey-scope" id="scope-specific" value="specific" style="accent-color:var(--accent-color);" onchange="toggleApikeyAppList()" />
+        <span style="font-size:0.88rem; color:var(--text-primary);">Specific apps only</span>
+       </label>
+      </div>
+     </div>
+
+     <div id="apikey-app-list-container" style="display:none; margin-top:0.75rem;">
+      <div id="apikey-app-checkboxes" style="display:flex; flex-direction:column; gap:0.4rem; max-height:180px; overflow-y:auto; padding:0.5rem; background:rgba(255,255,255,0.02); border:1px solid var(--border-color); border-radius:var(--radius-sm);">
+       <!-- populated by JS -->
+      </div>
+     </div>
+
+     <div class="modal-footer" style="margin-top:1.5rem;">
+      <button type="button" class="btn btn-secondary" onclick="closeModal('apikey-create-modal')">Cancel</button>
+      <button type="button" class="btn btn-primary" onclick="submitCreateApiKey()">
+       <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:0.3rem"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+       Generate Key
+      </button>
+     </div>
+    </div>
+   </div>
+  </div>
+ </div>
+
  <script>
   ${SCRIPTS}
  </script>
+
 </body>
 </html>`;
 
