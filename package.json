@@ -6,8 +6,7 @@
   "description": "Multi-tenant form intake platform on Node.js + MongoDB. Register, log in, define your own form fields, and collect submissions at /:username/:appname/ with optional Shopify metaobject sync.",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
-    "test": "node tests/logic.test.mjs"
+    "dev": "node --watch src/server.js"
   },
   "dependencies": {
     "express": "4.22.2",
